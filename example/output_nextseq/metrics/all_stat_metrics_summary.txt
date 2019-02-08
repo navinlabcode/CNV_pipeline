@@ -1,0 +1,4 @@
+
+
+TotalReads,TotalReads Coefficient Of Variation,Mean_TotalReads,Mean_DupsRemoved,Mean_ReadsKept,Mean_BinCount,Mean_Dupreads_Fraction(%)
+27497245,0.35,1099889,76403,1023485,187,6.95%
