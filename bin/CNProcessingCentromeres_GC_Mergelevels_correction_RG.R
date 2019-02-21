@@ -10,7 +10,13 @@ CNProcessingCentromeres <- function(dataName = dataName,
                                     {
   set.seed(5471)
 
-  library(DNAcopy)
+tryCatch(expr = { library("DNAcopy")}, 
+         error = function(e) { 
+           source("https://bioconductor.org/biocLite.R")
+           biocLite("DNAcopy")}, 
+         finally = library("DNAcopy"))
+
+  #library(DNAcopy)
 # vbBlacklist <- read.delim(gcName, header=TRUE)
   centr.loc <- read.delim(centName, as.is=TRUE)
   if (!file.exists(outputDir))
