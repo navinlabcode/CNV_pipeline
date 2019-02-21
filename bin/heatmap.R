@@ -49,7 +49,7 @@ cnv_ratio<-read.table(paste(final_dir,ratio_file,sep="/"),header=TRUE)
 
 
 ## load library
-library("devtools")
+#library("devtools")
 n<-ncol(segmentInfo)
 
 ##get the segment ratio data
@@ -66,8 +66,15 @@ rownames(sam) <-gsub("\\.","-",rownames(sam))
 selected_cell<-rownames(raw_reads[raw_reads$TotalReads>1000000,])
 sam<-sam[match(selected_cell,rownames(sam)),]
 dim(sam)
-require(IDPmisc)
-sam<-NaRV.omit(sam)
+
+tryCatch(expr = { library("flowViz")}, 
+         error = function(e) { 
+           source("https://bioconductor.org/biocLite.R")
+           biocLite("flowViz")}, 
+         finally = library("flowViz"))
+
+#require(IDPmisc)
+#sam<-NaRV.omit(sam)
 
 # transform seg ratio data for analysis
 mat <-as.matrix(sam) +0.1
@@ -75,7 +82,9 @@ mat <- log2(mat)
 
 
 # hierarchycal clustering ############################################
-library(gplots)
+
+
+#library(gplots)
 
 ###set colobreaks for heatmap
 palettes <- colorRampPalette(c("blue", "white", "red"))(n = 999)
@@ -95,9 +104,17 @@ CHR <- cbind(rbpal(2)[as.numeric(chr)], rbpal(2)[as.numeric(chr)])
 #          cexRow=0.5, plot.row.partition=TRUE)
 #dev.off()
 
+tryCatch(expr = { library("pheatmap")}, 
+         error = function(e) { 
+           source("https://bioconductor.org/biocLite.R")
+           biocLite("pheatmap")}, 
+         finally = library("pheatmap"))
 
-library(pheatmap)
 
+tryCatch(expr = { library("RColorBrewer")}, 
+         error = function(e) { 
+          install.packages("RColorBrewer")}, 
+         finally = library("RColorBrewer"))
 
 data_col_anno<-as.data.frame(cbind(chr))
 colnames(mat)<-rownames(data_col_anno)
@@ -112,7 +129,15 @@ my_hclust_cell <- hclust(dist(mat), method = "ward.D2")
 
 # load package
 
-library(dendextend)
+tryCatch(expr = { library("dendextend")}, 
+         error = function(e) { 
+           source("https://bioconductor.org/biocLite.R")
+           biocLite("dendextend")}, 
+         finally = library("dendextend"))
+
+
+
+#library(dendextend)
 my_cell_col <- cutree(tree = as.dendrogram(my_hclust_cell), k = 3)
 my_cell_col<-as.data.frame(my_cell_col)
 my_cell_col$my_cell_col<-gsub("1","cluster 1",my_cell_col$my_cell_col)
@@ -149,7 +174,7 @@ colnames(all)<-c("cell_id","cv","autoco")
 all$cell_id<-NULL
 
 all<-all[selected_cell,]
-all<-NaRV.omit(all)
+#all<-NaRV.omit(all)
 
 
 my_cell_col$Total_Raw_Reads<-raw_reads[match(rownames(my_cell_col),rownames(raw_reads)),]$TotalReads
