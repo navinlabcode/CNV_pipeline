@@ -1,9 +1,26 @@
+##############################
+# Ratio plots
+##############################
+# Author: Darlan Conterno Minussi
+# Description: Uses the uber.seg and uber.bin outputs from the CNV_pipeline to plot the ratio plots. This function will estimate the copy number using Alex method
+# input seg_data: uber.seg.txt file from the CNV_pipeline. 
+# input bin_data: uber.bin.btxt file from the CNV_pipeline
+# input ncpu: Number of cores to be used. Defaults to 40
+#
+# output: saves a .pdf figure of each cell to the working directory
+# depends on : tidyverse, parallel, here, integer_CN
+##############################
+
 ratio_plots <- function(seg_data,
                         bin_data,
                         ncpu = 40) {
   
+  # importing libraries
+  library(tidyverse)
+  library(parallel)
+  
   # obtaining integer median value to use for color
-  source("bin/integer_cn.R")
+  source(here::here("bin", "integer_cn.R"))
   
   #copying bin_data to calculate ploidy
   bin_data_cp <- bin_data
@@ -13,8 +30,6 @@ ratio_plots <- function(seg_data,
     bin_data_cp <- dplyr::select(bin_data_cp, -chrom, -chrompos, -abspos) %>% 
       as.data.frame()
   }
-  
-  browser()
   
   # calling Alex integer method sourced from integer_cn.R
   dat_ploidy <- Reduce(rbind, 
@@ -214,5 +229,5 @@ ratio_plots <- function(seg_data,
   
 }
 
-ratios_plots(seg_data = dat_seg,
+ratio_plots(seg_data = dat_seg,
             bin_data = dat)
