@@ -14,24 +14,73 @@ library(fs)
 library(cowplot)
 library(shiny)
 library(janitor)
+library(ape)
+library(ggtree)
 library(ggsci)
 library(plotly)
+library(amap)
+library(paletteer)
 library(scales)
 library(umap)
 library(dbscan)
+library(ComplexHeatmap)
 ```
 
-```{r}
+```{r, include=FALSE}
 # reading data
 dat_seg <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*seg.txt"))
 dat_bin <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*bin.txt"))
 dat_stats <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, regex= "all_stat_metrics.txt")) %>% 
   janitor::clean_names()
+
+# dat_seg setup
+dat_seg_s <- dat_seg %>% 
+  dplyr::select(-chrom, -chrompos, - abspos)
+
+dat_seg_t <- as.data.frame(t(dat_seg_s))
+```
+```{r umap_snn, include = FALSE}
+dat_umap <- umap::umap(dat_seg_t, random_state= 42, metric = "euclidean")
+  
+umap_df <- data.frame(umap1 = dat_umap$layout[,1],
+                        umap2 = dat_umap$layout[,2])
+  
+cl <- dbscan::sNNclust(umap_df, k = 20, eps = 2, minPts = 5)
 ```
 
 
 Summary
 =======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Heatmap
+
+```{r}
+# ordering cells
+dat_seg_order <- dat_seg_t[order(cl$cluster),]
+
+# setting colors
+row_col <- setNames(paletteer_d(ggsci, 
+                                nrc_npg, 
+                                length(levels(as.factor(cl$cluster)))),
+                    levels(as.factor(cl$cluster)))
+
+heat_row_col <- rowAnnotation(
+  data.frame(clusters = sort(cl$cluster)),
+             col = list(clusters = row_col))
+
+ht <- Heatmap(log2(dat_seg_order+1e-3),
+              cluster_columns = FALSE,
+              cluster_rows = FALSE,
+              show_row_names = FALSE,
+              show_column_names = FALSE,
+              use_raster = TRUE,
+              heatmap_legend_param = list(title = "Log2 (Ratio)"))
+
+draw(heat_row_col + ht)
+```
 
 Row
 -----------------------------------------------------------------------
@@ -48,18 +97,6 @@ dat_seg %>%
 ### UMAP
 
 ```{r}
-dat_seg_s <- dat_seg %>% 
-  dplyr::select(-chrom, -chrompos, - abspos)
-
-dat_seg_t <- as.data.frame(t(dat_seg_s))
-
-dat_umap <- umap::umap(dat_seg_t, random_state= 42, metric = "euclidean")
-  
-umap_df <- data.frame(umap1 = dat_umap$layout[,1],
-                        umap2 = dat_umap$layout[,2])
-  
-cl <- dbscan::sNNclust(umap_df, k = 20, eps = 2, minPts = 5)
-  
 p_umap <- umap_df %>% 
   rownames_to_column(var = "Cell") %>%
   dplyr::mutate(cluster = cl$cluster) %>% 
@@ -78,22 +115,6 @@ p_umap <- umap_df %>%
         axis.ticks = element_blank()) 
 
 ggplotly(p_umap, tooltip = "Cell")
-```
-
-
-Row
------------------------------------------------------------------------
-
-### Chart B
-
-```{r}
-
-```
-
-### Chart C
-
-```{r}
-
 ```
 
 QC
@@ -184,4 +205,29 @@ dat_bin %>%
                  color = "black") +
   xlab("GC normalized median bin count") +
   ylab("Frequency")
+```
+
+Phylogenetics
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Neighbor-Joining tree
+
+```{r}
+tree <- ape::nj(
+  amap::Dist(dat_seg_order, nbproc = 40)
+)
+
+# obtaining colors
+list_samples <- split(rownames(dat_seg_order),
+                      sort(cl$cluster))
+tree <- ggtree::groupOTU(tree, list_samples) 
+
+ggtree(ladderize(tree),
+  ladderize = FALSE,
+  size = .1) +
+  geom_tippoint(aes(color = group), size = .7) +
+  scale_colour_manual(values = c("black", row_col))  
 ```
