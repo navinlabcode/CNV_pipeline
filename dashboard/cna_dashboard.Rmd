@@ -1,0 +1,187 @@
+---
+title: "Navin Lab - CNA dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(here)
+library(fs)
+library(cowplot)
+library(shiny)
+library(janitor)
+library(ggsci)
+library(plotly)
+library(scales)
+library(umap)
+library(dbscan)
+```
+
+```{r}
+# reading data
+dat_seg <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*seg.txt"))
+dat_bin <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*bin.txt"))
+dat_stats <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, regex= "all_stat_metrics.txt")) %>% 
+  janitor::clean_names()
+```
+
+
+Summary
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Cells
+
+```{r}
+dat_seg %>% 
+  dplyr::select(-chrom, -chrompos, -abspos) %>% 
+  ncol() %>% 
+  valueBox(icon = "circle")
+```
+
+### UMAP
+
+```{r}
+dat_seg_s <- dat_seg %>% 
+  dplyr::select(-chrom, -chrompos, - abspos)
+
+dat_seg_t <- as.data.frame(t(dat_seg_s))
+
+dat_umap <- umap::umap(dat_seg_t, random_state= 42, metric = "euclidean")
+  
+umap_df <- data.frame(umap1 = dat_umap$layout[,1],
+                        umap2 = dat_umap$layout[,2])
+  
+cl <- dbscan::sNNclust(umap_df, k = 20, eps = 2, minPts = 5)
+  
+p_umap <- umap_df %>% 
+  rownames_to_column(var = "Cell") %>%
+  dplyr::mutate(cluster = cl$cluster) %>% 
+  dplyr::mutate(Cell = str_extract(Cell, "^[^_]*")) %>% 
+  ggplot() +
+  geom_point(aes(x = umap1, 
+                 y = umap2, 
+                 color = as.factor(cluster),
+                 label = Cell),
+             show.legend = FALSE) +
+  scale_color_npg() +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) 
+
+ggplotly(p_umap, tooltip = "Cell")
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+
+```
+
+### Chart C
+
+```{r}
+
+```
+
+QC
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Total Reads: Hover mouse over cell for info
+
+```{r}
+# creates a index for x and y so I have a square matrix, also creates a lable for plotly
+p <- dat_stats %>% 
+  mutate(idx_x = rep(1:sqrt(nrow(dat_stats)), length.out = nrow(dat_stats), each = sqrt(nrow(dat_stats)))) %>%
+  mutate(idx_y = rep(paste(1:sqrt(nrow(dat_stats)),"a", sep = ""), length.out = nrow(dat_stats)))  %>% 
+  dplyr::mutate(sample_name = str_extract(sample_name, "^[^_]*")) %>% 
+  dplyr::mutate(Cell = paste(sample_name,
+                              "- Total Reads: ",
+                             total_reads,
+                             sep = "")) %>% 
+  ggplot() + 
+  geom_tile(aes(x = idx_x, 
+                y = idx_y, 
+                fill = total_reads,
+                label = Cell)) +
+  coord_equal() + 
+  scale_fill_viridis_c(option = "magma",
+                       labels = scales::comma) +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.line = element_blank(),
+        axis.ticks = element_blank()) +
+  ylab("") +
+  xlab("") 
+
+
+# ggplotly
+ggplotly(p, tooltip = c("Cell")) 
+```
+
+### Reads Kept: Hover mouse over cell for info
+
+```{r}
+# creates a index for x and y so I have a square matrix, also creates a lable for plotly
+p <- dat_stats %>% 
+  mutate(idx_x = rep(1:sqrt(nrow(dat_stats)), length.out = nrow(dat_stats), each = sqrt(nrow(dat_stats)))) %>%
+  mutate(idx_y = rep(paste(1:sqrt(nrow(dat_stats)),"a", sep = ""), length.out = nrow(dat_stats)))  %>% 
+  dplyr::mutate(sample_name = str_extract(sample_name, "^[^_]*")) %>% 
+  dplyr::mutate(Cell = paste(sample_name,
+                              "- Reads Kept: ",
+                             reads_kept,
+                             sep = "")) %>% 
+  ggplot() + 
+  geom_tile(aes(x = idx_x, 
+                y = idx_y, 
+                fill = reads_kept,
+                label = Cell)) +
+  coord_equal() + 
+  scale_fill_viridis_c(option = "magma",
+                       labels = scales::comma) +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.line = element_blank(),
+        axis.ticks = element_blank()) +
+  ylab("") +
+  xlab("") 
+
+
+# ggplotly
+ggplotly(p, tooltip = c("Cell")) 
+```
+
+Row
+-----------------------------------------------------------------------
+
+### GC normalized bin read count distribution
+
+```{r}
+dat_bin %>% 
+  dplyr::select(-chrom, -chrompos, -abspos) %>% 
+  purrr::map_dfr(median) %>% 
+  gather(key = "cell",
+         value = "bin_median") %>% 
+  ggplot() +
+  geom_histogram(aes(x = bin_median, 
+                     y= ..count../sum(..count..)),
+                 fill = "white",
+                 color = "black") +
+  xlab("GC normalized median bin count") +
+  ylab("Frequency")
+```
