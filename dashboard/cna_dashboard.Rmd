@@ -92,7 +92,7 @@ median(dat_stats$duplicates) %>%
 ```
 
 
-### UMAP
+### UMAP. Hover mouse for more info.
 
 ```{r}
 p_umap <- umap_df %>% 
@@ -136,7 +136,7 @@ ht <- Heatmap(log2(dat_seg_order+1e-3),
 draw(heat_row_col + ht)
 ```
 
-### Ploidy Inference {data-height=350}
+### Ploidy Inference. Hover mouse for more info. {data-height=350}
 
 ```{r}
 dat_ploidy <- Reduce(rbind, 
