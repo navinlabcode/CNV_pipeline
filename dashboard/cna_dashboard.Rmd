@@ -4,6 +4,8 @@ output:
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
+    theme: flatly
+    logo: navin_lab_logo.png
 ---
 
 ```{r setup, include=FALSE}
@@ -24,6 +26,7 @@ library(scales)
 library(umap)
 library(dbscan)
 library(ComplexHeatmap)
+library(flsa)
 ```
 
 ```{r, include=FALSE}
@@ -34,11 +37,18 @@ dat_stats <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, regex= "al
   janitor::clean_names() %>% 
   mutate(duplicates = dups_removed/total_reads)
 
+# reading ratio
+dat_rat <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*ratio.txt"))
+dat_rat_cp <- dat_rat %>% dplyr::select(-chrom, -chrompos, -abspos)
+
 # dat_seg setup
 dat_seg_s <- dat_seg %>% 
   dplyr::select(-chrom, -chrompos, - abspos)
 
 dat_seg_t <- as.data.frame(t(dat_seg_s))
+
+# sourcing integer inference
+source(here::here("bin", "integer_cn.R"))
 ```
 ```{r umap_snn, include = FALSE}
 dat_umap <- umap::umap(dat_seg_t, random_state= 42, metric = "euclidean")
@@ -108,7 +118,7 @@ ggplotly(p_umap, tooltip = "Cell")
 Row
 -----------------------------------------------------------------------
 
-### Heatmap
+### Heatmap {data-height=650}
 
 ```{r}
 heat_row_col <- rowAnnotation(
@@ -124,6 +134,36 @@ ht <- Heatmap(log2(dat_seg_order+1e-3),
               heatmap_legend_param = list(title = "Log2 (Ratio)"))
 
 draw(heat_row_col + ht)
+```
+
+### Ploidy Inference {data-height=350}
+
+```{r}
+dat_ploidy <- Reduce(rbind, 
+                     parallel::mcmapply(function(prof, name) c(name, ploidy.and.peakheight(prof)),
+                                        dat_rat_cp, names(dat_rat_cp),
+                                        mc.cores= 40, SIMPLIFY=FALSE)) %>% 
+  as_tibble() %>% 
+  readr::type_convert() %>% 
+  dplyr::rename(sample_name = V1) %>% 
+  dplyr::mutate(sample_name = str_extract(sample_name, "^[^_]*")) %>% 
+  dplyr::mutate(Cell = paste(sample_name, 
+                              ": ", 
+                              ploidy,
+                              sep = ""))
+
+p_ploidy <- ggplot(dat_ploidy) + 
+  geom_point(aes(x = ploidy, 
+                 y = peak_height, 
+                 color = peak_height,
+                 label = Cell)) +
+  scale_color_paletteer_c(scico, berlin) + 
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_y_continuous(breaks = scales::pretty_breaks()) +
+  xlab("Inferred ploidy") +
+  ylab("Peak Height (Confidence)")
+
+ggplotly(p_ploidy, tooltip = "Cell")
 ```
 
 QC
@@ -222,13 +262,12 @@ dat_bin %>%
 Phylogenetics
 =======================================================================
 
-
 Row
 -----------------------------------------------------------------------
 
 ### Neighbor-Joining tree
 
-```{r fig.width=500}
+```{r}
 tree <- ape::nj(
   amap::Dist(dat_seg_order, nbproc = 40)
 )
@@ -242,6 +281,7 @@ ggtree(ladderize(tree),
   ladderize = FALSE,
   size = .1) +
   geom_tippoint(aes(color = group), size = .7) +
-  scale_colour_manual(values = c("black", row_col))  
+  scale_colour_manual(values = c("black", row_col)) +
+  theme(legend.position = "right")
 ```
 
