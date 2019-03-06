@@ -108,7 +108,7 @@ run_bowtie_varbin(){
 	[ -e "$output/split_bowtie.sh" ] && `rm -f "$output/split_bowtie.sh"`
 	s1_tmp="$output/split_bowtie.sh"
 	s2_tmp="$output/split_bowtie_uniq.sh"	
-	cat $fastq_input |grep -v "R2" | while read line
+	cat $fastq_input |grep -v "_R2_" | while read line
 	do
 	s1_input=${line}
 	s2_input=`ls $s1_input|sed -e 's/_R1_/_R2_/g'`	
