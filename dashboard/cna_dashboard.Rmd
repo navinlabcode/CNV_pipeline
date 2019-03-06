@@ -8,7 +8,7 @@ output:
     logo: navin_lab_logo.png
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, message=FALSE}
 # checking for packages, loading or installing
 packages <- c("tidyverse", "fs", "shiny",
               "here", "flexdashboard", "cowplot",
@@ -35,6 +35,9 @@ lapply(bioc_packages, FUN = function(x) {
 ```
 
 ```{r, include=FALSE}
+# message
+message("Rendering Dashboard")
+
 # reading data
 dat_seg <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*seg.txt"))
 dat_bin <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*bin.txt"))

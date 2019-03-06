@@ -9,4 +9,6 @@ package.check <- lapply(packages, FUN = function(x) {
 })
 
 Sys.setenv(RSTUDIO_PANDOC= "/usr/lib/rstudio-server/bin/pandoc")
-rmarkdown::render(here("dashboard", "cna_dashboard.Rmd"))
+rmarkdown::render(here("dashboard", "cna_dashboard.Rmd"),
+                  output_format = "html_document",
+                  output_file = here("output", "cna_dashboard.Rmd"))
