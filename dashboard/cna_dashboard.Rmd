@@ -9,24 +9,29 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-library(flexdashboard)
-library(tidyverse)
-library(here)
-library(fs)
-library(cowplot)
-library(shiny)
-library(janitor)
-library(ape)
-library(ggtree)
-library(ggsci)
-library(plotly)
-library(amap)
-library(paletteer)
-library(scales)
-library(umap)
-library(dbscan)
-library(ComplexHeatmap)
-library(flsa)
+# checking for packages, loading or installing
+packages <- c("tidyverse", "fs", "shiny",
+              "here", "flexdashboard", "cowplot",
+              "janitor", "ape", "ggsci", "plotly",
+              "amap", "paletteer", "scales", "umap", "dbscan",
+              "flsa", "BiocManager")
+
+package.check <- lapply(packages, FUN = function(x) {
+  if (!require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE)
+    library(x, character.only = TRUE)
+  }
+})
+
+bioc_packages <- c("ggtree", "ComplexHeatmap")
+
+lapply(bioc_packages, FUN = function(x) {
+  if (!require(x, character.only = TRUE)) {
+    BiocManager::install(x, update = FALSE)
+    library(x, character.only = TRUE)
+  }
+})
+
 ```
 
 ```{r, include=FALSE}
@@ -121,6 +126,29 @@ Row
 ### Heatmap {data-height=650}
 
 ```{r}
+# chromosome annotation top bar
+# loading data containing vector chr
+chr_lengths <- c(953, 1038,  875,  838,  782,  724,  646,  635,  480,  561,  568,  575,  431,  391,  332,  310,  311,  336,  220, 266,  149 , 139,  607,   38)
+chr_binary <- rep(c(2,1), 12)
+chr <- data.frame(chr = rep.int(x = chr_binary, times = chr_lengths))
+# getting lengths for chr numbers annotation
+chr_rl_c <- c(1, cumsum(chr_lengths))
+# creating a data frame to calculate rowMeans
+chr_df <-  data.frame(a = chr_rl_c[1:length(chr_rl_c)-1],b= chr_rl_c[2:length(chr_rl_c)])
+chr_l_means <- round(rowMeans(chr_df))
+chrom.names <- c(1:22,"X", "Y")
+# creating the vector for chr number annotations
+v <- vector()
+v[chr_l_means] <- chrom.names
+v[is.na(v)] <- ""
+chr_bar <- HeatmapAnnotation(chr_text = anno_text(v, 
+                                                  gp = gpar(fontsize = 8)),
+                             df = chr,
+                             show_legend = FALSE,
+                             which = "column",
+                             col = list(chr = c("1" = "grey88", "2" = "black"))
+)
+
 heat_row_col <- rowAnnotation(
   data.frame(clusters = sort(cl$cluster)),
              col = list(clusters = row_col))
@@ -131,6 +159,7 @@ ht <- Heatmap(log2(dat_seg_order+1e-3),
               show_row_names = FALSE,
               show_column_names = FALSE,
               use_raster = TRUE,
+              top_annotation = chr_bar,
               heatmap_legend_param = list(title = "Log2 (Ratio)"))
 
 draw(heat_row_col + ht)
@@ -256,6 +285,29 @@ dat_bin %>%
                  fill = "white",
                  color = "black") +
   xlab("GC normalized median bin count") +
+  ylab("Frequency")
+```
+
+### GC normalized bin read count distribution
+
+```{r}
+dat_stats %>% 
+  gather(key = "parameter",
+         value = "value",
+         -sample_name) %>% 
+  dplyr::filter(parameter %in% c("total_reads", "reads_kept")) %>% 
+  ggplot() +
+  geom_histogram(aes(x = value,
+                     y = ..count../sum(..count..),
+                     fill = parameter),
+                 color = "black") +
+  facet_wrap(vars(parameter)) +
+  scale_fill_manual(values = c("#7D3232", "#32324B")) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 7)) +
+  theme(axis.text.x = element_text(angle = 90),
+        strip.background = element_rect(fill= NA),
+        legend.position = "none") +
+  xlab("Reads") +
   ylab("Frequency")
 ```
 
