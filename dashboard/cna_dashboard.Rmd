@@ -1,10 +1,10 @@
 ---
-title: "Navin Lab - CNA dashboard"
+title: "CNA dashboard"
 output: 
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
-    theme: flatly
+    theme: default
     logo: navin_lab_logo.png
 ---
 
@@ -269,7 +269,9 @@ Row
 
 ```{r}
 tree <- ape::nj(
-  amap::Dist(dat_seg_order, nbproc = 40)
+  amap::Dist(dat_seg_order, 
+             method = "manhattan", 
+             nbproc = 40)
 )
 
 # obtaining colors
@@ -282,6 +284,62 @@ ggtree(ladderize(tree),
   size = .1) +
   geom_tippoint(aes(color = group), size = .7) +
   scale_colour_manual(values = c("black", row_col)) +
-  theme(legend.position = "right")
+  theme(legend.position = "right") +
+  labs(color = "SNN Cluster")
 ```
+
+About
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Dashboard
+This dashboard was developed by Darlan Conterno Minussi and is a part of the Navin Lab copy number pipeline.
+
+### Clustering
+Clustering of the data is being performed with UMAP dimension reduction followed by SNN clustering.
+
+UMAP is using the following parameters:
+
+- Seed: 42
+- Distance: Euclidean
+
+SNN is using the following parameters:
+
+- k: 20
+- eps: 2
+- minPts: 5
+
+### Ploidy Inference
+Ploidy inference is using the fourier transform method developed by Alexander Davis. For more information please refer to the following publication.
+Ref: Soon
+
+### Phylogenetics
+Phylogenetics is using the Neighbor-Joining method and the distance matrix is calculated using manhattan distance.
+
+Row
+-----------------------------------------------------------------------
+
+### Packages
+The following packages were used in this dashboard:
+
+- flexdashboard
+- tidyverse
+- here
+- fs
+- cowplot
+- shiny
+- janitor
+- ape
+- ggtree
+- ggsci
+- plotly
+- amap
+- paletteer
+- scales
+- umap
+- dbscan
+- ComplexHeatmap
+- flsa
 
