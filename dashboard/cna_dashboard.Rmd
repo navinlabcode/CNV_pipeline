@@ -31,7 +31,8 @@ library(ComplexHeatmap)
 dat_seg <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*seg.txt"))
 dat_bin <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*bin.txt"))
 dat_stats <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, regex= "all_stat_metrics.txt")) %>% 
-  janitor::clean_names()
+  janitor::clean_names() %>% 
+  mutate(duplicates = dups_removed/total_reads)
 
 # dat_seg setup
 dat_seg_s <- dat_seg %>% 
@@ -46,18 +47,7 @@ umap_df <- data.frame(umap1 = dat_umap$layout[,1],
                         umap2 = dat_umap$layout[,2])
   
 cl <- dbscan::sNNclust(umap_df, k = 20, eps = 2, minPts = 5)
-```
 
-
-Summary
-=======================================================================
-
-Row
------------------------------------------------------------------------
-
-### Heatmap
-
-```{r}
 # ordering cells
 dat_seg_order <- dat_seg_t[order(cl$cluster),]
 
@@ -66,21 +56,10 @@ row_col <- setNames(paletteer_d(ggsci,
                                 nrc_npg, 
                                 length(levels(as.factor(cl$cluster)))),
                     levels(as.factor(cl$cluster)))
-
-heat_row_col <- rowAnnotation(
-  data.frame(clusters = sort(cl$cluster)),
-             col = list(clusters = row_col))
-
-ht <- Heatmap(log2(dat_seg_order+1e-3),
-              cluster_columns = FALSE,
-              cluster_rows = FALSE,
-              show_row_names = FALSE,
-              show_column_names = FALSE,
-              use_raster = TRUE,
-              heatmap_legend_param = list(title = "Log2 (Ratio)"))
-
-draw(heat_row_col + ht)
 ```
+
+Summary
+=======================================================================
 
 Row
 -----------------------------------------------------------------------
@@ -93,6 +72,15 @@ dat_seg %>%
   ncol() %>% 
   valueBox(icon = "circle")
 ```
+
+### Median PCR Duplicates
+
+```{r}
+median(dat_stats$duplicates) %>% 
+  scales::percent() %>% 
+  valueBox(icon = "percentage")
+```
+
 
 ### UMAP
 
@@ -117,43 +105,32 @@ p_umap <- umap_df %>%
 ggplotly(p_umap, tooltip = "Cell")
 ```
 
+Row
+-----------------------------------------------------------------------
+
+### Heatmap
+
+```{r}
+heat_row_col <- rowAnnotation(
+  data.frame(clusters = sort(cl$cluster)),
+             col = list(clusters = row_col))
+
+ht <- Heatmap(log2(dat_seg_order+1e-3),
+              cluster_columns = FALSE,
+              cluster_rows = FALSE,
+              show_row_names = FALSE,
+              show_column_names = FALSE,
+              use_raster = TRUE,
+              heatmap_legend_param = list(title = "Log2 (Ratio)"))
+
+draw(heat_row_col + ht)
+```
+
 QC
 =======================================================================
 
 Row
 -----------------------------------------------------------------------
-
-### Total Reads: Hover mouse over cell for info
-
-```{r}
-# creates a index for x and y so I have a square matrix, also creates a lable for plotly
-p <- dat_stats %>% 
-  mutate(idx_x = rep(1:sqrt(nrow(dat_stats)), length.out = nrow(dat_stats), each = sqrt(nrow(dat_stats)))) %>%
-  mutate(idx_y = rep(paste(1:sqrt(nrow(dat_stats)),"a", sep = ""), length.out = nrow(dat_stats)))  %>% 
-  dplyr::mutate(sample_name = str_extract(sample_name, "^[^_]*")) %>% 
-  dplyr::mutate(Cell = paste(sample_name,
-                              "- Total Reads: ",
-                             total_reads,
-                             sep = "")) %>% 
-  ggplot() + 
-  geom_tile(aes(x = idx_x, 
-                y = idx_y, 
-                fill = total_reads,
-                label = Cell)) +
-  coord_equal() + 
-  scale_fill_viridis_c(option = "magma",
-                       labels = scales::comma) +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.line = element_blank(),
-        axis.ticks = element_blank()) +
-  ylab("") +
-  xlab("") 
-
-
-# ggplotly
-ggplotly(p, tooltip = c("Cell")) 
-```
 
 ### Reads Kept: Hover mouse over cell for info
 
@@ -187,6 +164,41 @@ p <- dat_stats %>%
 ggplotly(p, tooltip = c("Cell")) 
 ```
 
+### Duplicates percentage: Hover mouse over cell for info
+
+```{r}
+# creates a index for x and y so I have a square matrix, also creates a lable for plotly
+p_dups <- dat_stats %>% 
+  mutate(idx_x = rep(1:sqrt(nrow(dat_stats)), 
+                     length.out = nrow(dat_stats), 
+                     each = sqrt(nrow(dat_stats)))) %>%
+  mutate(idx_y = rep(paste(1:sqrt(nrow(dat_stats)),"a", sep = ""),
+                     length.out = nrow(dat_stats)))  %>% 
+  dplyr::mutate(sample_name = str_extract(sample_name, "^[^_]*")) %>% 
+  dplyr::mutate(Cell = paste(sample_name,
+                              "- Duplicates: ",
+                             scales::percent(duplicates),
+                             sep = "")) %>% 
+  ggplot() + 
+  geom_tile(aes(x = idx_x, 
+                y = idx_y, 
+                fill = duplicates,
+                label = Cell)) +
+  coord_equal() + 
+  scale_fill_viridis_c(option = "viridis",
+                       labels = scales::percent) +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.line = element_blank(),
+        axis.ticks = element_blank()) +
+  ylab("") +
+  xlab("") 
+
+
+# ggplotly
+ggplotly(p_dups, tooltip = "Cell") 
+```
+
 Row
 -----------------------------------------------------------------------
 
@@ -210,12 +222,13 @@ dat_bin %>%
 Phylogenetics
 =======================================================================
 
+
 Row
 -----------------------------------------------------------------------
 
 ### Neighbor-Joining tree
 
-```{r}
+```{r fig.width=500}
 tree <- ape::nj(
   amap::Dist(dat_seg_order, nbproc = 40)
 )
@@ -231,3 +244,4 @@ ggtree(ladderize(tree),
   geom_tippoint(aes(color = group), size = .7) +
   scale_colour_manual(values = c("black", row_col))  
 ```
+
