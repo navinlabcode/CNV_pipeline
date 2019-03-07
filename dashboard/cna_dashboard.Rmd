@@ -55,16 +55,28 @@ dat_seg_s <- dat_seg %>%
 
 dat_seg_t <- as.data.frame(t(dat_seg_s))
 
+# n cells
+n_cells <- dat_seg %>% 
+  dplyr::select(-abspos, 
+                -chrompos, 
+                -chrom) %>% 
+  ncol()
+
 # sourcing integer inference
 source(here::here("bin", "integer_cn.R"))
 ```
+
 ```{r umap_snn, include = FALSE}
 dat_umap <- umap::umap(dat_seg_t, random_state= 42, metric = "euclidean")
   
 umap_df <- data.frame(umap1 = dat_umap$layout[,1],
                         umap2 = dat_umap$layout[,2])
+
+if (n_cells < 15) {
+  snn_k_param <- n_cells - 1
+} else snn_k_param <- 15
   
-cl <- dbscan::sNNclust(umap_df, k = 20, eps = 2, minPts = 5)
+cl <- dbscan::sNNclust(umap_df, k = snn_k_param, eps = 2, minPts = 5)
 
 # ordering cells
 dat_seg_order <- dat_seg_t[order(cl$cluster),]
@@ -362,7 +374,7 @@ UMAP is using the following parameters:
 
 SNN is using the following parameters:
 
-- k: 20
+- k: 15 (if n_cells < 15 then k = n_cells - 1)
 - eps: 2
 - minPts: 5
 
