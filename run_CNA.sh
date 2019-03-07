@@ -195,7 +195,7 @@ heatmap(){
 
 dashboard(){
 
-				Rscript $bin/render_dashboard.R
+				Rscript $bin/render_dashboard.R $output
 
 }
 
