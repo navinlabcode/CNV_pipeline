@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-packages = c("flexdashboard", "here", "rmarkdown")
+packages = c("flexdashboard", "here", "rmarkdown", "fs")
 # if a package is installed, it will be loaded
 # if any are not, the missing package(s) will be installed and loaded
 package.check <- lapply(packages, FUN = function(x) {
@@ -10,15 +10,12 @@ package.check <- lapply(packages, FUN = function(x) {
   }
 })
 
-outdir <- commandArgs(trailingOnly = TRUE)[1]
-
-if (!dir.exists(outdir)) {
-  stop("Dashboard: output directory does not exist.")
-}
-
 Sys.setenv(RSTUDIO_PANDOC= "/usr/lib/rstudio-server/bin/pandoc")
 rmarkdown::render(here("dashboard", "cna_dashboard.Rmd"),
                   output_format = "flexdashboard::flex_dashboard",
-                  output_file = paste(outdir, 
+                  output_file = paste(dir_ls(here(), 
+                                             type = "directory",
+                                             regexp = "final_result$", 
+                                             recursive = T), 
                                       "/cna_dashboard.html",
                                       sep = ""))
