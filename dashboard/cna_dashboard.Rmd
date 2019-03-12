@@ -67,7 +67,7 @@ source(here::here("bin", "integer_cn.R"))
 ```
 
 ```{r umap_snn, include = FALSE}
-dat_umap <- umap::umap(dat_seg_t, random_state= 42, metric = "euclidean")
+dat_umap <- umap::umap(dat_seg_t, random_state= 42, metric = "manhattan")
   
 umap_df <- data.frame(umap1 = dat_umap$layout[,1],
                         umap2 = dat_umap$layout[,2])
@@ -76,15 +76,17 @@ if (n_cells < 15) {
   snn_k_param <- n_cells - 1
 } else snn_k_param <- 15
   
-cl <- dbscan::sNNclust(umap_df, k = snn_k_param, eps = 2, minPts = 5)
+cl <- dbscan::sNNclust(umap_df, k = snn_k_param, eps = .5, minPts = 5)
+
+# getting number of needed colors
+n_colors <- cl$cluster %>% unique() %>% length()
 
 # ordering cells
 dat_seg_order <- dat_seg_t[order(cl$cluster),]
 
 # setting colors
-row_col <- setNames(paletteer_d(ggsci, 
-                                nrc_npg, 
-                                length(levels(as.factor(cl$cluster)))),
+row_col <- setNames(colorRampPalette(paletteer_d(ggsci, 
+                                nrc_npg, 10))(n_colors),
                     levels(as.factor(cl$cluster)))
 ```
 
@@ -125,7 +127,7 @@ p_umap <- umap_df %>%
                  color = as.factor(cluster),
                  label = Cell),
              show.legend = FALSE) +
-  scale_color_npg() +
+  scale_color_manual(values = row_col) +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.line = element_blank(),
@@ -370,12 +372,12 @@ Clustering of the data is being performed with UMAP dimension reduction followed
 UMAP is using the following parameters:
 
 - Seed: 42
-- Distance: Euclidean
+- Distance: Manhattan
 
 SNN is using the following parameters:
 
 - k: 15 (if n_cells < 15 then k = n_cells - 1)
-- eps: 2
+- eps: 1
 - minPts: 5
 
 ### Ploidy Inference
