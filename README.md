@@ -16,8 +16,6 @@ Update features:
 
         5. it includes the heatmap figures for checking the CNV profile of all samples     
 
-        6. the orginal folder vb200&blvb200 have been changed to vbdir&blvb
-
         7. it can analysis the CNV based on different bin size resolution from 100k to 10M.
 
         8. The CNV profile figure for each cell includes the value of average Read counts per bin
