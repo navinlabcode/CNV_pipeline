@@ -6,26 +6,22 @@ CNV Pipeline Algorithm:
 
 ***Requirements: Bowtie, Samtools, GNU Parallel, R package(DNAcopy) **
 -------------
-Update features:
+ Features:
 
         1. it can support both hiseq and nextseq data.
 
-        2. The new Version can run the pipeline without two configuration files (CNProcessArgs.txt and filterArgs.txt).
+        2. The segmentations for CBS can run in paralell.  
 
-        3. it can customize the CPU number.
+        3. it can analysis the CNV based on different bin size resolution from 100k to 10M.
 
-        5. it includes the heatmap figures for checking the CNV profile of all samples     
-
-        7. it can analysis the CNV based on different bin size resolution from 100k to 10M.
-
-        8. The CNV profile figure for each cell includes the value of average Read counts per bin
+        4. it generates the QC results by dashboard
 
 -------------
 Usage:
 
 step1: specify the path to all fastq files, for example:
 
-	ls /volumes/seq/flowcells/MDA/hiseq/2018/2018_10_04_PM869/ES-N2292-OE_PM869/*.gz >fastq.input
+	ls /path/*.gz >fastq.input
 
 step2: run as follows
 

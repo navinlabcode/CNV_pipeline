@@ -11,7 +11,7 @@ for( myStr in commandArgs() )
   message("processing command arg:", myStr)
   if (length(grep("^-sample=", myStr))>0)
   {
-    dataName <- substring(myStr, nchar("-sample=")+1) 
+    dataName <- substring(myStr, nchar("-sample=")+1)
   }
   if (length(grep("^-undoprune=", myStr))>0)
   {
@@ -27,21 +27,25 @@ for( myStr in commandArgs() )
   }
   if (length(grep("^-makeFig=", myStr))>0)
   {
-    makeFig <- substring(myStr, nchar("-makeFig=")+1) 
+    makeFig <- substring(myStr, nchar("-makeFig=")+1)
   }
   if (length(grep("^-source1=", myStr))>0)
   {
-    source1 <- substring(myStr, nchar("-source1=")+1) 
+    source1 <- substring(myStr, nchar("-source1=")+1)
     source(source1)
   }
   if (length(grep("^-source2=", myStr))>0)
   {
-    source2 <- substring(myStr, nchar("-source2=")+1) 
+    source2 <- substring(myStr, nchar("-source2=")+1)
     source(source2)
+  }
+  if (length(grep("^-cpu=", myStr))>0)
+  {
+  cpu <- as.numeric(substring(myStr, nchar("-cpu=")+1))
   }
   if(length(grep("^-outdir=",myStr))>0)
   {
-outArg <- substring(myStr, nchar("-outdir=")+1)
+  outArg <- substring(myStr, nchar("-outdir=")+1)
   }
 }
 
@@ -64,4 +68,4 @@ if (!file.exists(outputDir)) {
 
 CNProcessingCentromeres(dataName= dataName, dataDir = dataDir, outputDir = outputDir, centName=chrominfo,
                         alpha = alpha,undo.prune = undo.prune,
-                        makeFig = makeFig)
+                        makeFig = makeFig,cpu=cpu)

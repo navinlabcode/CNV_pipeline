@@ -1,33 +1,33 @@
-CNProcessingCentromeres <- function(dataName = dataName, 
-                                    dataDir = dataDir, 
+CNProcessingCentromeres <- function(dataName = dataName,
+                                    dataDir = dataDir,
                                     outputDir = outputDir,
                                     alpha = 0.01,
                                     min.width= 5,
                                     undo.prune = 0.05,
-                                    fileName = ".vb", 
-                                    centName = centName, 
-                                    makeFig = FALSE) 
+                                    fileName = ".vb",
+                                    cpu = cpu,
+                                    centName = centName,
+                                    makeFig = FALSE)
                                     {
   set.seed(5471)
 
-tryCatch(expr = { library("DNAcopy")}, 
-         error = function(e) { 
+tryCatch(expr = { library("DNAcopy")},
+         error = function(e) {
            source("https://bioconductor.org/biocLite.R")
-           biocLite("DNAcopy")}, 
+           biocLite("DNAcopy")},
          finally = library("DNAcopy"))
+library(parallel)
 
-  #library(DNAcopy)
-# vbBlacklist <- read.delim(gcName, header=TRUE)
   centr.loc <- read.delim(centName, as.is=TRUE)
   if (!file.exists(outputDir))
   { dir.create(outputDir) }
-  
+
   if (!file.exists(paste(outputDir,"IGV_shorts", sep="/")))
   { dir.create(paste(outputDir,"IGV_shorts", sep="/")) }
-  
+
   if (!file.exists(paste(outputDir,"IGV_longs", sep="/")))
   { dir.create(paste(outputDir,"IGV_longs", sep="/")) }
-  
+
   cnBins <- NULL
   cnRatio <- NULL
 
@@ -42,7 +42,7 @@ tryCatch(expr = { library("DNAcopy")},
       cnRatio <- temp[,c(1:3,6)]
       colnames(cnBins)[ncol(cnBins)] <- sample.name
       colnames(cnRatio)[ncol(cnRatio)] <- sample.name
-    } else 
+    } else
       if(!is.null(cnBins))
       {
         temp.bin <- temp$V7
@@ -53,31 +53,25 @@ tryCatch(expr = { library("DNAcopy")},
         colnames(cnRatio)[which(colnames(cnRatio) == "temp.r")] <- sample.name
       }
   }
-  
+
   colnames(cnBins)[match(c("V1", "V2", "V3"), colnames(cnBins))] <- c("chrom","chrompos","abspos")
   colnames(cnRatio)[match(c("V1", "V2", "V3"), colnames(cnRatio))] <- c("chrom","chrompos","abspos")
-  
-  write.table(cnBins, file = paste(outputDir, "/uber.", dataName, ".bin.txt", sep=""), 
+
+  write.table(cnBins, file = paste(outputDir, "/uber.", dataName, ".bin.txt", sep=""),
               quote = FALSE, sep = "\t",row.names = FALSE)
   write.table(cnRatio, file = paste(outputDir, "/uber.", dataName, ".ratio.txt", sep=""),
               quote = FALSE, sep = "\t",row.names = FALSE)
-  
-  for(x in 4:ncol(cnRatio))
-  {
-    appendFile <- FALSE
-    if(x != 4)
-    {
-      appendFile <- TRUE
-    }
+
+  fun_parallel_seg<-function(x){
     sample.name <- colnames(cnRatio[,c(match(c("chrom","chrompos","abspos"), colnames(cnRatio)), x)])[4]
-    thisRatio <-  cbind(cnBins[,c(match(c("chrom","chrompos","abspos"), colnames(cnBins)), x)],cnRatio[,x] ) 
+    thisRatio <-  cbind(cnBins[,c(match(c("chrom","chrompos","abspos"), colnames(cnBins)), x)],cnRatio[,x] )
     colnames(thisRatio) <-c("chrom", "chrompos", "abspos", "bincount", "ratio")
     thisRatio$ratio[which(thisRatio$ratio == 0)] <- 1e-3
     thisRatio$chrom <- as.numeric(thisRatio$chrom)
-    CNA.object <- CNA(log(thisRatio$ratio, base=2), thisRatio$chrom, thisRatio$chrompos, data.type="logratio", 
-                      sampleid=sample.name) 
-    smoothed.CNA.object <- smooth.CNA(CNA.object) 
-        segment.smoothed.CNA.object <- segment(smoothed.CNA.object, alpha=alpha, min.width=5, undo.splits="prune", undo.prune=undo.prune) 
+    CNA.object <- CNA(log(thisRatio$ratio, base=2), thisRatio$chrom, thisRatio$chrompos, data.type="logratio",
+                      sampleid=sample.name)
+    smoothed.CNA.object <- smooth.CNA(CNA.object)
+        segment.smoothed.CNA.object <- segment(smoothed.CNA.object, alpha=alpha, min.width=5, undo.splits="prune", undo.prune=undo.prune)
     thisShort <- segment.smoothed.CNA.object[[2]]
     log.seg.mean.LOWESS <- rep(thisShort$seg.mean, thisShort$num.mark)
     merge.obj <- MergeLevels(log(thisRatio$ratio, base=2),log.seg.mean.LOWESS)
@@ -92,7 +86,7 @@ tryCatch(expr = { library("DNAcopy")},
 
 ################this step should be flexable for different datasets, default not to include this unless the samples are noisy
 
-#  mean.log.seg <- median(log.seg.mean)   
+#  mean.log.seg <- median(log.seg.mean)
  # experimental.diff <- abs(log.seg.mean-log(thisRatio$ratio, base=2))
   # experimental.MAD <-median(experimental.diff)
    # m <- 1
@@ -118,17 +112,18 @@ Short <- NULL
 chr <- rle(thisRatio$chrom)[[2]]
 
 for (x in 1:length(chr)){
+
 	thisRatio.sub <- thisRatio[which(thisRatio$chrom==chr[x]), ]
 	seg.mean.sub <- log(rle(thisRatio.sub$seg.mean.LOWESS)[[2]], base=2)
 	rle.length.sub <- rle(thisRatio.sub$seg.mean.LOWESS)[[1]]
-		
+
 		num.mark.sub <- seq(1,length(rle.length.sub),1)
 		loc.start.sub <-seq(1,length(rle.length.sub),1)
 		loc.end.sub <- seq(1,length(rle.length.sub),1)
-		
+
 		len <-0
 		j <-1
-	
+
 		for (j in 1: length(rle.length.sub)){
 		num.mark.sub[j] <- rle.length.sub[j]
 		loc.start.sub[j] <- thisRatio.sub$chrompos[len+1]
@@ -136,22 +131,22 @@ for (x in 1:length(chr)){
 		loc.end.sub[j] <- thisRatio.sub$chrompos[len]
 		j <- j+1
 		}
-		
+
 		ID <- rep(sample.name, times=length(rle.length.sub))
-		chrom <- rep(chr[x], times=length(rle.length.sub)) 
+		chrom <- rep(chr[x], times=length(rle.length.sub))
 		Short.sub <- cbind(ID,chrom,loc.start.sub,loc.end.sub,num.mark.sub,seg.mean.sub)
 		Short <- rbind(Short, Short.sub)
 
 		x <- x+1
 }
 
-colnames(Short) <- c("ID","chrom","loc.start","loc.end","num.mark","seg.mean")
+colnames(Short) <- c("ID","chrom","loc.start","loc.end","num.mark","normalized_log2_seg.mean")
 
     if(makeFig)
     	{
- 		 if (!file.exists(paste(outputDir,"Figures", sep="/"))) 
+ 		 if (!file.exists(paste(outputDir,"Figures", sep="/")))
  		 { dir.create(paste(outputDir,"Figures", sep="/")) }
-  
+
     	chr <- thisRatio$chrom
     	chr.shift <- c(chr[-1], chr[length(chr)])
     	vlines <- c(1, thisRatio$abspos[which(chr != chr.shift) + 1], thisRatio$abspos[nrow(thisRatio)])
@@ -162,13 +157,13 @@ colnames(Short) <- c("ID","chrom","loc.start","loc.end","num.mark","seg.mean")
     	x.at <- c(0, 0.5, 1, 1.5, 2, 2.5, 3) * 10^9
     	x.labels <- c("0", "0.5", "1.0", "1.5", "2.0", "2.5", "3.0")
     	y.at <- c(0.005, 0.020, 0.100, 0.500, 2.000)
-    	y.labels <- c("0.005", "0.020", "0.100", "0.500", "2.000")	
-    	 print("Making figure") 
+    	y.labels <- c("0.005", "0.020", "0.100", "0.500", "2.000")
+    	 print("Making figure")
  		jpeg(paste(outputDir,"/Figures/profile_", sample.name, ".jpg", sep=""), height=800, width=1200)
-    	
+
     	par(mar=c(5.1,4.1,4.1,4.1))
     	plot(x=thisRatio$abspos, y=thisRatio$ratio, log="y", main=c(paste(sample.name, ": GCnormalized+MergeLevels", sep=""),paste0("Average Read Counts Each Bin:  ",round(mean(thisRatio$bincount),0))),xaxt="n", xlab="Genome Position (Gb)", yaxt="n", ylab="Copy Number Ratio", col="skyblue", cex=0.5)
-    	
+
     	axis(1, at=x.at, labels=x.labels)
     	axis(2, at=y.at, labels=y.labels)
     	#lines(x=thisRatio$abspos, y=thisRatio$ratio, col="skyblue", cex=0.5)
@@ -183,37 +178,42 @@ colnames(Short) <- c("ID","chrom","loc.start","loc.end","num.mark","seg.mean")
     	abline(v=vlines, par(lty=2))
     	mtext(chr.text, at = chr.at)
     	dev.off()
-    	
-    	}
-    	
-    	if(!appendFile)
-    	{
-    	segMat <- thisRatio[, c("chrom","chrompos","abspos", "seg.mean.LOWESS" )]
-    	colnames(segMat)[which(colnames(segMat) == "seg.mean.LOWESS")] <-  sample.name 
-    	
-    		write.table(segMat, file = paste(outputDir, "/uber.", dataName, ".seg.txt", sep=""),
+
+    }
+
+write.table(thisRatio, sep="\t", file=paste(outputDir, "/IGV_longs/", sample.name, ".hg19.50k.varbin.txt",
+                                            sep=""), quote=FALSE, row.names=FALSE)
+write.table(Short, sep="\t", file=paste(outputDir, "/IGV_shorts/", sample.name, ".hg19.50k.varbin.txt",
+                                        sep=""),  quote=FALSE, row.names=FALSE)
+
+normlized_seg<-list(thisRatio$seg.mean.LOWESS)
+names(normlized_seg)<-sample.name
+sub_thisShort<-list(thisShort)
+names(sub_thisShort)<-sample.name
+#return(normlized_seg)
+
+results <- list(
+  normlized_seg=normlized_seg,
+  thisShort=thisShort
+)
+return(results)
+}
+
+mc <- getOption("mc.cores", cpu)
+res<-mclapply(4:ncol(cnRatio),fun_parallel_seg,mc.cores=mc)
+
+all_seg<-as.data.frame(sapply(res,function(x){x$normlized_seg}))
+chr_info<-cnRatio[, c("chrom","chrompos","abspos")]
+all_seg<-cbind(chr_info,all_seg)
+
+all_thisShort<-lapply(res,function(x){x$thisShort})
+all_thisShort<-do.call(rbind,all_thisShort)
+
+  write.table(all_seg, file = paste(outputDir, "/uber.", dataName, ".seg.txt", sep=""),
             quote = FALSE, sep = "\t",row.names = FALSE)
-        
-        } else
-        if(appendFile)
-        {
-        segMat <- read.delim(paste(outputDir, "/uber.", dataName, ".seg.txt", sep=""), header=TRUE)
-        segMat <- cbind(segMat, thisRatio$seg.mean.LOWESS) 
-        colnames(segMat)[ncol(segMat)] <- sample.name
-    	
-        write.table(segMat, file = paste(outputDir, "/uber.", dataName, ".seg.txt", sep=""),
-            quote = FALSE, sep = "\t",row.names = FALSE)
-        }
-      
-    
-    write.table(thisRatio, sep="\t", file=paste(outputDir, "/IGV_longs/", sample.name, ".hg19.50k.varbin.txt", 
-                                                sep=""), quote=FALSE, row.names=FALSE) 
-    write.table(Short, sep="\t", file=paste(outputDir, "/IGV_shorts/", sample.name, ".hg19.50k.varbin.txt", 
-                                                sep=""),  quote=FALSE, row.names=FALSE)  
-    write.table(thisShort, sep="\t", file=paste(outputDir, "/IGV_shorts/", dataName, ".all.hg19.50k.varbin.seg", 
-                                                sep=""), quote=FALSE, row.names=FALSE, col.names=FALSE, append=appendFile)
-    
-    
-                                                
-  }
+
+  colnames(all_thisShort) <- c("ID","chrom","loc.start","loc.end","num.mark","Raw_seg.mean")
+
+  write.table(all_thisShort, sep="\t", file=paste(outputDir, "/IGV_shorts/", dataName, ".all.hg19.50k.varbin.seg",
+                                              sep=""), quote=FALSE, row.names=FALSE, col.names=TRUE)
 }

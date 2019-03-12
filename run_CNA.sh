@@ -184,7 +184,7 @@ segmentation(){
         source1=$bin/$(grep "CNProcessingCentromeres" $lib/CNA.config |cut -d "=" -f 2|xargs basename)
         source2=$bin/$(grep "Mergelevels.R" $lib/CNA.config |cut -d "=" -f 2|xargs basename)
         chrominfo=$lib/$(grep "chrominfo" $lib/CNA.config |cut -d "=" -f 2|xargs basename)
-        R CMD BATCH --vanilla --args -sample="$sample" -undoprune="$undo_prune" -alpha="$alpha" -chrominfo="$chrominfo" -makeFig="$makeFig" -source1="$source1" -source2="$source2" -outdir="$output" "$bin/CN_Seg_GC_filter_correctionRG.R" "$logs_folder/seg_log_file.log"
+        R CMD BATCH --vanilla --args -sample="$sample" -undoprune="$undo_prune" -alpha="$alpha" -cpu="$cpu" -chrominfo="$chrominfo" -makeFig="$makeFig" -source1="$source1" -source2="$source2" -outdir="$output" "$bin/CN_Seg_GC_filter_correctionRG.R" "$logs_folder/seg_log_file.log"
 }
 
 heatmap(){
