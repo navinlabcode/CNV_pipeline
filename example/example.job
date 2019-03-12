@@ -1,1 +1,0 @@
-sh /volumes/seq/code/PIPELINES/CNA_pipeline_v1.4_beta/run_CNA.sh --fastq fastq_hiseq --output output_hiseq 
