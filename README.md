@@ -14,8 +14,6 @@ Update features:
 
         3. it can customize the CPU number.
 
-        4. it generates the new folder named metrics. you can get the summary metrics.
-
         5. it includes the heatmap figures for checking the CNV profile of all samples     
 
         6. the orginal folder vb200&blvb200 have been changed to vbdir&blvb
