@@ -15,6 +15,7 @@ main(){
 	heatmap
 	dashboard
 	ratio_plots
+	clean
      }
 
 help="
@@ -205,6 +206,10 @@ ratio_plots(){
   
         Rscript $bin/ratio_plots.R "$bin"
   
+}
+
+clean(){
+	find $output/ -name "*.sam" -type f -exec rm {} \;
 }
 
  main
