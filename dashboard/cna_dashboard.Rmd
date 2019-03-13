@@ -6,6 +6,9 @@ output:
     vertical_layout: fill
     theme: default
     logo: navin_lab_logo.png
+params:
+  directory:
+    value: x
 ---
 
 ```{r setup, include=FALSE, message=FALSE}
@@ -34,7 +37,7 @@ lapply(bioc_packages, FUN = function(x) {
 
 ```
 
-```{r, include=FALSE}
+```{r setting_up, include=FALSE}
 # message
 message("Rendering Dashboard")
 
@@ -63,10 +66,10 @@ n_cells <- dat_seg %>%
   ncol()
 
 # sourcing integer inference
-source(here::here("bin", "integer_cn.R"))
+source(paste(params$directory, "/integer_cn.R", sep = ""))
 ```
 
-```{r umap_snn, include = FALSE}
+```{r clustering, include = FALSE}
 dat_umap <- umap::umap(dat_seg_t, random_state= 42, metric = "manhattan")
   
 umap_df <- data.frame(umap1 = dat_umap$layout[,1],
@@ -107,7 +110,7 @@ dat_seg %>%
 
 ### Median PCR Duplicates
 
-```{r}
+```{r calculating_pcr_duplicates}
 median(dat_stats$duplicates) %>% 
   scales::percent() %>% 
   valueBox(icon = "percentage")
@@ -116,7 +119,7 @@ median(dat_stats$duplicates) %>%
 
 ### UMAP. Hover mouse for more info.
 
-```{r}
+```{r generating_umap}
 p_umap <- umap_df %>% 
   rownames_to_column(var = "Cell") %>%
   dplyr::mutate(cluster = cl$cluster) %>% 
@@ -142,7 +145,7 @@ Row
 
 ### Heatmap {data-height=650}
 
-```{r}
+```{r making_heatmap}
 # chromosome annotation top bar
 # loading data containing vector chr
 chr_lengths <- c(953, 1038,  875,  838,  782,  724,  646,  635,  480,  561,  568,  575,  431,  391,  332,  310,  311,  336,  220, 266,  149 , 139,  607,   38)
@@ -184,7 +187,7 @@ draw(heat_row_col + ht)
 
 ### Ploidy Inference. Hover mouse for more info. {data-height=350}
 
-```{r}
+```{r infering_ploidies}
 dat_ploidy <- Reduce(rbind, 
                      parallel::mcmapply(function(prof, name) c(name, ploidy.and.peakheight(prof)),
                                         dat_rat_cp, names(dat_rat_cp),
@@ -336,7 +339,7 @@ Row
 
 ### Neighbor-Joining tree
 
-```{r}
+```{r running_phylogenetics}
 tree <- ape::nj(
   amap::Dist(dat_seg_order, 
              method = "manhattan", 

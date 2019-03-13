@@ -10,12 +10,17 @@ package.check <- lapply(packages, FUN = function(x) {
   }
 })
 
+args <- commandArgs(trailingOnly = TRUE)
+
 Sys.setenv(RSTUDIO_PANDOC= "/usr/lib/rstudio-server/bin/pandoc")
-rmarkdown::render(here("dashboard", "cna_dashboard.Rmd"),
+rmarkdown::render(paste(args[1], "/dashboard/cna_dashboard.Rmd", sep = ""),
                   output_format = "flexdashboard::flex_dashboard",
                   output_file = paste(dir_ls(here(), 
                                              type = "directory",
                                              regexp = "final_result$", 
                                              recursive = T), 
                                       "/cna_dashboard.html",
-                                      sep = ""))
+                                      sep = ""),
+                  params = list(
+                    directory = paste(args[1], "/bin", sep = "")
+                  ))
