@@ -17,11 +17,6 @@ for (myStr in commandArgs() )
 	{
 	outdir <- substring(myStr, nchar("-outdir=")+1)
 	}
-	if (length(grep("^-source3=", myStr))>0)
-	{
-	source3 <- substring(myStr, nchar("-source3=")+1)
-	source(source3) 
-	}
 }
 #data
 final_dir <- paste(outdir,"final_result",sep="/")

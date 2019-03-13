@@ -8,10 +8,10 @@
 
 main(){
 	create_folder
-	run_bowtie_varbin
-	read_align_stat
-	filter
-	segmentation
+#	run_bowtie_varbin
+#	read_align_stat
+#	filter
+#	segmentation
 	heatmap
 	dashboard
      }
@@ -189,8 +189,7 @@ segmentation(){
 
 heatmap(){
 
-        source3=$(grep "heatmap.3.R" $lib/CNA.config |cut -d "=" -f 2)
-        R CMD BATCH --args -sample="$sample" -outdir="$output" -source3="$source3"  "$bin/heatmap.R" "$logs_folder/heatmap.log"
+        R CMD BATCH --args -sample="$sample" -outdir="$output" "$bin/heatmap.R" "$logs_folder/heatmap.log"
 }
 
 dashboard(){
