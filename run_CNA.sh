@@ -14,6 +14,7 @@ main(){
 	segmentation
 	heatmap
 	dashboard
+	ratio_plots
      }
 
 help="
@@ -198,6 +199,12 @@ dashboard(){
 
 				Rscript $bin/render_dashboard.R "$root_dir"
 
+}
+
+ratio_plots(){
+  
+        Rscript $bin/ratio_plots.R "$bin"
+  
 }
 
  main
