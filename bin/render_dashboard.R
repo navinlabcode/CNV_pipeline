@@ -4,10 +4,16 @@ packages = c("flexdashboard", "here", "rmarkdown", "fs")
 # if a package is installed, it will be loaded
 # if any are not, the missing package(s) will be installed and loaded
 package.check <- lapply(packages, FUN = function(x) {
-  if (!require(x, character.only = TRUE)) {
-    install.packages(x, dependencies = TRUE)
-    library(x, character.only = TRUE)
-  }
+#  if (!require(x, character.only = TRUE)) {
+ #   install.packages(x, dependencies = TRUE)
+  #  library(x, character.only = TRUE)
+  #}
+
+tryCatch(expr = { library(x,character.only = TRUE)}, 
+         error = function(e) { 
+         install.packages(x,dependencies=TRUE,type = "source",lib=.libPaths()[1],repos='http://cran.us.r-project.org')}, 
+         finally = library(x,character.only = TRUE))
+
 })
 
 args <- commandArgs(trailingOnly = TRUE)
