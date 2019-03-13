@@ -8,10 +8,10 @@
 
 main(){
 	create_folder
-#	run_bowtie_varbin
-#	read_align_stat
-#	filter
-#	segmentation
+	run_bowtie_varbin
+	read_align_stat
+	filter
+	segmentation
 	heatmap
 	dashboard
      }
