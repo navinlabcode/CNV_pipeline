@@ -147,8 +147,13 @@ Row
 
 ```{r making_heatmap}
 # chromosome annotation top bar
-# loading data containing vector chr
-chr_lengths <- c(953, 1038,  875,  838,  782,  724,  646,  635,  480,  561,  568,  575,  431,  391,  332,  310,  311,  336,  220, 266,  149 , 139,  607,   38)
+# getting the vector of chrom lengths
+chr_lengths <- seg_data %>% 
+  dplyr::select(abspos, chrom, chrompos) %>% 
+  group_by(chrom) %>%
+  summarize(n = n()) %>%
+  pull(n)
+
 chr_binary <- rep(c(2,1), 12)
 chr <- data.frame(chr = rep.int(x = chr_binary, times = chr_lengths))
 # getting lengths for chr numbers annotation
