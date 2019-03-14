@@ -88,7 +88,7 @@ if (n_cells < 15) {
   
 cl <- dbscan::sNNclust(umap_df, k = snn_k_param, eps = .5, minPts = 5)
 
-# getting number of needed colors
+# getting number of needed colors for cl
 n_colors <- cl$cluster %>% unique() %>% length()
 
 # ordering cells
