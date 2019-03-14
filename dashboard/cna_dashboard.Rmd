@@ -211,16 +211,22 @@ dat_ploidy <- Reduce(rbind,
                               ploidy,
                               sep = ""))
 
-p_ploidy <- ggplot(dat_ploidy) + 
+# obtaining SNN clusters labels to use as colors, matching with cell name and plotting
+umap_cl_result <- umap_df %>% rownames_to_column("sample_name") %>%  mutate(cluster = cl$cluster) %>% dplyr::select(sample_name, cluster) 
+
+dat_ploidy_cl <- inner_join(dat_ploidy,umap_cl_result, by = "sample_name")
+
+p_ploidy <- ggplot(dat_ploidy_cl) + 
   geom_point(aes(x = ploidy, 
                  y = peak_height, 
-                 color = peak_height,
+                 color = as.factor(cluster),
                  label = Cell)) +
-  scale_color_paletteer_c(scico, berlin) + 
+  scale_color_manual(values = row_col) + 
   scale_x_continuous(breaks = scales::pretty_breaks()) +
   scale_y_continuous(breaks = scales::pretty_breaks()) +
   xlab("Inferred ploidy") +
-  ylab("Peak Height (Confidence)")
+  ylab("Peak Height (Confidence)") + 
+  labs(color = "SNN Cluster")
 
 ggplotly(p_ploidy, tooltip = "Cell")
 ```
