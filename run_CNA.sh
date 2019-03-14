@@ -120,7 +120,8 @@ run_bowtie_varbin(){
 	s1_input=${line}
 	s2_input=`ls $s1_input|sed -e 's/_R1_/_R2_/g'`
 	s3_input=`ls $s1_input|sed -e 's/L00[0-9]/L003/g'`
-	if [ -f $s1_input ] && [ ! -f $s3_input ]
+	s4_input=`ls $s1_input|sed -e 's/L00[0-9]/L004/g'`
+	if [ -f $s1_input ] && [[ ! -f $s3_input || ! -f $s4_input ]]
 	then
 		if [ ! -f $s2_input ] || [ $s1_input = $s2_input ]
 		then
@@ -135,13 +136,13 @@ run_bowtie_varbin(){
 
 	done
 	sort $s1_tmp |uniq > $s2_tmp
-	gnu_parallel=$(grep "parallel" $lib/CNA.config | cut -d "=" -f 2)
-	$gnu_parallel -j $cpu < $s2_tmp
-	rm -f $output/bowtie-*
-	rm -f $s1_tmp
-	rm -f $s2_tmp
-	time=`date`
-	echo "$time step1 run_bowtie & varbin  is done"
+#	gnu_parallel=$(grep "parallel" $lib/CNA.config | cut -d "=" -f 2)
+#	$gnu_parallel -j $cpu < $s2_tmp
+#	rm -f $output/bowtie-*
+#	rm -f $s1_tmp
+#	rm -f $s2_tmp
+#	time=`date`
+#	echo "$time step1 run_bowtie & varbin  is done"
 }
 
 
@@ -213,6 +214,8 @@ ratio_plots(){
 clean(){
 	find $output/ -name "*.sam" -type f -exec rm {} \;
 	rm -rf $output/../.RData
+	rm -rf $bam_folder
+	ls $sort_folder/* -d |xargs rm -rf
 }
 
  main
