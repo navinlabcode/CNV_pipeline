@@ -42,8 +42,8 @@ lapply(bioc_packages, FUN = function(x) {
 message("Rendering Dashboard")
 
 # reading data
-dat_seg <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*seg.txt"))
-dat_bin <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*bin.txt"))
+dat_seg <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*seg.txt")) %>% janitor::clean_names()
+dat_bin <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*bin.txt")) %>% janitor::clean_names()
 dat_stats <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, regex= "all_stat_metrics.txt")) %>% 
   janitor::clean_names() %>% 
   mutate(duplicates = dups_removed/total_reads)
@@ -160,7 +160,7 @@ chr_lengths <- dat_seg %>%
   summarize(n = n()) %>%
   pull(n)
 
-chr_binary <- rep(c(2,1), 12)
+chr_binary <- c(rep(c(2,1), 11),2)
 chr <- data.frame(chr = rep.int(x = chr_binary, times = chr_lengths))
 # getting lengths for chr numbers annotation
 chr_rl_c <- c(1, cumsum(chr_lengths))
@@ -173,7 +173,7 @@ v <- vector()
 v[chr_l_means] <- chrom.names
 v[is.na(v)] <- ""
 chr_bar <- HeatmapAnnotation(chr_text = anno_text(v, 
-                                                  gp = gpar(fontsize = 8)),
+                                                  gp = gpar(fontsize = 6)),
                              df = chr,
                              show_legend = FALSE,
                              which = "column",
