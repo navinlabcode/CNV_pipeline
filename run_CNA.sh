@@ -2,8 +2,8 @@
 
 #Initial Processing for identifying the existence of Copy number variations (CNVs)
 #Depends on: Bowtie, Samtools, GNU Parallel, R package(DNAcopy).
-#Author: Min Hu
-#Last Updated: Nov 13, 2018
+#Author: Min Hu, Darlan Conterno Minussi
+#Last Updated: Mar 13th, 2019
 
 
 main(){
@@ -213,9 +213,9 @@ ratio_plots(){
 
 clean(){
 	find $output/ -name "*.sam" -type f -exec rm {} \;
-	rm -rf $output/../.RData
+	rm -rf $output/../.RData $output/../Rplots.pdf
 	rm -rf $bam_folder
-	ls $sort_folder/* -d |xargs rm -rf
+	ls -d $sort_folder/*/ |xargs rm -rf
 }
 
  main
