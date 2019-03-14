@@ -136,13 +136,13 @@ run_bowtie_varbin(){
 
 	done
 	sort $s1_tmp |uniq > $s2_tmp
-#	gnu_parallel=$(grep "parallel" $lib/CNA.config | cut -d "=" -f 2)
-#	$gnu_parallel -j $cpu < $s2_tmp
-#	rm -f $output/bowtie-*
-#	rm -f $s1_tmp
-#	rm -f $s2_tmp
-#	time=`date`
-#	echo "$time step1 run_bowtie & varbin  is done"
+	gnu_parallel=$(grep "parallel" $lib/CNA.config | cut -d "=" -f 2)
+	$gnu_parallel -j $cpu < $s2_tmp
+	rm -f $output/bowtie-*
+	rm -f $s1_tmp
+	rm -f $s2_tmp
+	time=`date`
+	echo "$time step1 run_bowtie & varbin  is done"
 }
 
 
