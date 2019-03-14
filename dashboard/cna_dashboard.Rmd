@@ -130,7 +130,6 @@ median(dat_stats$duplicates) %>%
 p_umap <- umap_df %>% 
   rownames_to_column(var = "Cell") %>%
   dplyr::mutate(cluster = cl$cluster) %>% 
-  dplyr::mutate(Cell = str_extract(Cell, "^[^_]*")) %>% 
   ggplot() +
   geom_point(aes(x = umap1, 
                  y = umap2, 
@@ -207,7 +206,6 @@ dat_ploidy <- Reduce(rbind,
   as_tibble() %>% 
   readr::type_convert() %>% 
   dplyr::rename(sample_name = V1) %>% 
-  dplyr::mutate(sample_name = str_extract(sample_name, "^[^_]*")) %>% 
   dplyr::mutate(Cell = paste(sample_name, 
                               ": ", 
                               ploidy,
@@ -240,7 +238,6 @@ Row
 p <- dat_stats %>% 
   mutate(idx_x = rep(1:sqrt(nrow(dat_stats)), length.out = nrow(dat_stats), each = sqrt(nrow(dat_stats)))) %>%
   mutate(idx_y = rep(paste(1:sqrt(nrow(dat_stats)),"a", sep = ""), length.out = nrow(dat_stats)))  %>% 
-  dplyr::mutate(sample_name = str_extract(sample_name, "^[^_]*")) %>% 
   dplyr::mutate(Cell = paste(sample_name,
                               "- Reads Kept: ",
                              reads_kept,
@@ -275,7 +272,6 @@ p_dups <- dat_stats %>%
                      each = sqrt(nrow(dat_stats)))) %>%
   mutate(idx_y = rep(paste(1:sqrt(nrow(dat_stats)),"a", sep = ""),
                      length.out = nrow(dat_stats)))  %>% 
-  dplyr::mutate(sample_name = str_extract(sample_name, "^[^_]*")) %>% 
   dplyr::mutate(Cell = paste(sample_name,
                               "- Duplicates: ",
                              scales::percent(duplicates),
