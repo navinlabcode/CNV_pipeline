@@ -215,7 +215,7 @@ clean(){
 	find $output/ -name "*.sam" -type f -exec rm {} \;
 	rm -rf $output/../.RData $output/../Rplots.pdf
 	rm -rf $bam_folder $sam_folder
-	find $sort_folder/ -type d |grep -v "^./$" |xargs rm -rf
+	find $sort_folder/ -type d |grep -v "./$" |xargs rm -rf
 }
 
  main
