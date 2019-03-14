@@ -160,7 +160,7 @@ chr_lengths <- dat_seg %>%
   summarize(n = n()) %>%
   pull(n)
 
-chr_binary <- c(rep(c(2,1), 11),2)
+chr_binary <- rep(c(2,1), 12)
 chr <- data.frame(chr = rep.int(x = chr_binary, times = chr_lengths))
 # getting lengths for chr numbers annotation
 chr_rl_c <- c(1, cumsum(chr_lengths))
