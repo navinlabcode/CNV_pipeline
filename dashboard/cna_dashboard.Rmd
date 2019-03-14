@@ -70,7 +70,14 @@ source(paste(params$directory, "/integer_cn.R", sep = ""))
 ```
 
 ```{r clustering, include = FALSE}
-dat_umap <- umap::umap(dat_seg_t, random_state= 42, metric = "manhattan")
+if (n_cells < 15) {
+  umap_n_neighbors <- n_cells - 1
+} else umap_n_neighbors <- 15
+
+dat_umap <- umap::umap(dat_seg_t, 
+                       random_state= 42, 
+                       metric = "manhattan",
+                       n_neighbors = umap_n_neighbors)
   
 umap_df <- data.frame(umap1 = dat_umap$layout[,1],
                         umap2 = dat_umap$layout[,2])
@@ -148,7 +155,7 @@ Row
 ```{r making_heatmap}
 # chromosome annotation top bar
 # getting the vector of chrom lengths
-chr_lengths <- seg_data %>% 
+chr_lengths <- dat_seg %>% 
   dplyr::select(abspos, chrom, chrompos) %>% 
   group_by(chrom) %>%
   summarize(n = n()) %>%

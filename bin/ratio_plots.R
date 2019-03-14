@@ -15,6 +15,9 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 bin_directory <- args[1]
+output_dir <- args[2]
+
+print(output_dir)
 
 ncpu = 40
 
@@ -225,9 +228,6 @@ ggaes <- list(
   )
 )
 
-# creating directory to save files
-fs::dir_create(here("output", "final_result", "ratio_plots"))
-
 invisible(parallel::mclapply(seq_along(cell_names), function (x) {
   # just get the mean to calculate the CN, should be 1 though...
   mean_ratios_cell <- df %>% dplyr::filter(cell == cell_names[x]) %>% pull(ratios_rat) %>% mean()
@@ -257,7 +257,7 @@ invisible(parallel::mclapply(seq_along(cell_names), function (x) {
                        name = "Ratios") +
     scale_color_identity()
   
-  cowplot::ggsave(paste(here("output","final_result","ratio_plots"), "/", cell_names[x], ".png", sep = ""), plot = p, device = "png", width = 13, height = 5)
+  cowplot::ggsave(paste(output_dir, cell_names[x], ".png", sep = ""), plot = p, device = "png", width = 13, height = 5)
   
 }
 , mc.cores = ncpu)

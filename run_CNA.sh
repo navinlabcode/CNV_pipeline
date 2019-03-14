@@ -99,6 +99,7 @@ create_folder(){
 	metrics_folder="$output/metrics"
 	logs_folder="$output/logs"
 	final_folder="$output/final_result"
+	ratio_plots_folder="$output/final_result/ratio_plots"
 	mkdir -p $sam_folder/
 	mkdir -p $bam_folder/
 	mkdir -p $sort_folder/
@@ -106,6 +107,7 @@ create_folder(){
 	mkdir -p $metrics_folder/
 	mkdir -p $stat_folder/
 	mkdir -p $logs_folder/
+	mkdir -p $ratio_plots_folder/
 	mkdir -p $final_folder/
 }
 
@@ -204,7 +206,7 @@ dashboard(){
 
 ratio_plots(){
   
-        Rscript $bin/ratio_plots.R "$bin"
+        Rscript $bin/ratio_plots.R "$bin" "$output/final_result/ratio_plots/"
   
 }
 
