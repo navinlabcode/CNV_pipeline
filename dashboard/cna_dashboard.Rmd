@@ -169,11 +169,11 @@ chr_df <-  data.frame(a = chr_rl_c[1:length(chr_rl_c)-1],b= chr_rl_c[2:length(ch
 chr_l_means <- round(rowMeans(chr_df))
 chrom.names <- c(1:22,"X", "Y")
 # creating the vector for chr number annotations
-v <- vector()
+v <- vector(mode = "character",length = cumsum(chr_lengths)[length(chr_lengths)])
 v[chr_l_means] <- chrom.names
 v[is.na(v)] <- ""
 chr_bar <- HeatmapAnnotation(chr_text = anno_text(v, 
-                                                  gp = gpar(fontsize = 6)),
+                                                  gp = gpar(fontsize = 7)),
                              df = chr,
                              show_legend = FALSE,
                              which = "column",
