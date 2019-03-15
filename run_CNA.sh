@@ -19,7 +19,7 @@ main(){
      }
 
 help="
-***version 1.3****
+***version 1.4****
 Name
         run_CNV.sh -- Call CNV in a population of N samples
 
