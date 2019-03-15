@@ -7,7 +7,7 @@
 #Author: Anna Unruh
 #Author: Min
 #updated: correct the bugs with empty input file, zero-inflated and NA-inflated distributions
-#Last Updated: Nov 13, 2018
+#Last Updated: Mar 13, 2019
 
 theArgs <- NULL
 for( myStr in commandArgs() )
@@ -28,16 +28,19 @@ for( myStr in commandArgs() )
  	if(length(grep("^-filter_CellWithEmptyBin=",myStr))>0)
  	{
  	filter_CellWithEmptyBin <-as.numeric(substring(myStr, nchar("-filter_CellWithEmptyBin=")+1))
-	 }
+ 	}
+	  if (length(grep("^-cpu=", myStr))>0)
+  	{
+    	cpu <- as.numeric(substring(myStr, nchar("-cpu=")+1))
+  	}
 	
 }
 #thisArgs <- read.delim(theArgs[1], header=FALSE, as.is=TRUE)
 #thisArgs <- thisArgs$V1
 
 #Read in the arguments from your arguement file`s
-#filterFile <- thisArgs[1]
-#varbinPattern <- thisArgs[2]
-#gcInputFile <- thisArgs[3]
+
+
 varbinPattern<-".vb"
 
 vb_folder <- paste(outArg,"vbdir",sep = "/")
@@ -136,31 +139,44 @@ print("Writing out the varbins files.")
 if(!file.exists(blvb))
   { dir.create(blvb)}
 
-for(file in list.files(vb_folder, pattern=varbinPattern, full.names=TRUE))
-	{
+library(parallel)
+
+#for(file in list.files(vb_folder, pattern=varbinPattern, full.names=TRUE))
+fun_parallel<-function(x){
+	    file<-all_files[x]
       if(file.info(file)$size==0){
        	next
       }		
      vabtemp <- read.delim(file, header=FALSE)
-	print (file)
-	print (length(which(vabtemp$V5==0)))
-	print (filter_CellWithEmptyBin*nrow(vabtemp))
- 
-     if(length(which(vabtemp$V5==0)) > filter_CellWithEmptyBin*nrow(vabtemp)){
+    
+	  #print (sum(vabtemp$V5==0))
+	 # print (filter_CellWithEmptyBin*nrow(vabtemp))
+	  flag <- TRUE
+	  tryCatch({ if(sum(vabtemp$V5==0) > filter_CellWithEmptyBin*nrow(vabtemp)){
       	next
-     	 }	 
+     	 }
                 vabtemp$V5[vabtemp$V5==0] <- 0.001
-		vabtemp$V6 <- lowess.gc(gcFile$gc.content,vabtemp$V5)
+		            vabtemp$V6 <- lowess.gc(gcFile$gc.content,vabtemp$V5)
                 vabtemp$V7 <- vabtemp$V6*median(vabtemp$V4)
                 if(sum(is.na(vabtemp$V7))>0){
-		next	
-		}
+		            next	
+	            	}
 		temp <- strsplit(file, "/")[[1]]
-		temp2 <- strsplit(temp[length(temp)],split=".", fixed=TRUE)[[1]]
-		sampleName <- temp2[1]
+		sampleName <- strsplit(temp[length(temp)],split=".vb", fixed=TRUE)[[1]]
 	if(is.null(toRemove)){	
 	write.table(x=vabtemp, file=paste(blvb,  paste(sampleName,"-bl", varbinPattern, sep=""), sep="/"), col.names=FALSE, row.names=FALSE, sep="\t")
 	}else{
 	write.table(x=vabtemp[-toRemove,], file=paste(blvb,  paste(sampleName,"-bl", varbinPattern, sep=""), sep="/"), col.names=FALSE, row.names=FALSE, sep="\t")
 	}
+		
+		}, error=function(e){})
 }
+
+
+mc <- getOption("mc.cores", cpu)
+
+all_files<-list.files(vb_folder, pattern=varbinPattern, full.names=TRUE)
+
+mclapply(1:length(all_files),fun_parallel,mc.cores=mc)
+
+

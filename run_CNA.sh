@@ -184,7 +184,7 @@ elif [[ $res == "1000"  ]];then
         filterFile=$lib/$(grep "excluded_bin_10M" $lib/CNA.config | cut -d "=" -f 2|xargs basename)
         gcinputFile=$lib/$(grep "gc_10M" $lib/CNA.config | cut -d "=" -f 2|xargs basename)
  fi
-        R CMD BATCH --vanilla --args -filter="$filterFile" -gcinputFile="$gcinputFile"  -outdir="$output" -filter_CellWithEmptyBin="$filter_CellWithEmptyBin" "$bin/filterScript_GC.R" "$logs_folder/filter_log_file.log"
+        R CMD BATCH --vanilla --args -filter="$filterFile" -gcinputFile="$gcinputFile"  -outdir="$output" -cpu="$cpu" -filter_CellWithEmptyBin="$filter_CellWithEmptyBin" "$bin/filterScript_GC.R" "$logs_folder/filter_log_file.log"
 }
 
 segmentation(){
@@ -201,7 +201,7 @@ heatmap(){
 
 dashboard(){
 
-				Rscript $bin/render_dashboard.R "$root_dir"
+	Rscript $bin/render_dashboard.R "$root_dir"
 
 }
 
