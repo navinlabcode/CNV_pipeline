@@ -31,6 +31,7 @@ package.check <- lapply(packages, FUN = function(x) {
   }
 })
 
+
 # reading ratio
 
 rat_data <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*ratio.txt")) %>% janitor::clean_names()
@@ -63,7 +64,10 @@ dat_ploidy <- Reduce(rbind,
                               sep = ""))
 
 # saving the median
-ploidy_median <- median(dat_ploidy$ploidy)
+# filtering errors of ploidy (I'm considering 1 calls as error)
+dat_ploidy_filtered <- dat_ploidy %>% 
+  dplyr::filter(ploidy != 1)
+ploidy_median <- median(dat_ploidy_filtered$ploidy)
 
 # establishing a value to truncate the ploidy that will be used for the colors later
 ploidy_trunc_val <- round(ploidy_median) * 2
@@ -139,7 +143,7 @@ max_int_value <- max(df$int_value)
 df$int_value[df$int_value > ploidy_trunc_val] <- ploidy_trunc_val
 
 # setting colors of the ratios according to the inferred ploidy
-if (round(ploidy_median) == 2) {
+if (round(ploidy_median) == 2 ) {
   df <- df %>% dplyr::mutate(colors = case_when(
     int_value == 0 ~ "darkblue",
     int_value == 1 ~ "dodgerblue",
@@ -257,9 +261,11 @@ invisible(parallel::mclapply(seq_along(cell_names), function (x) {
                        name = "Ratios") +
     scale_color_identity()
   
-  cowplot::ggsave(paste(output_dir, cell_names[x], ".png", sep = ""), plot = p, device = "png", width = 13, height = 5)
+  cowplot::ggsave(paste(output_dir, cell_names[x], ".png", sep = ""), plot = p, device = "png", width = 10, height = 5)
   
 }
 , mc.cores = ncpu)
 )
+
+
 
