@@ -3,7 +3,7 @@
 #Initial Processing for identifying the existence of Copy number variations (CNVs)
 #Depends on: Bowtie, Samtools, GNU Parallel, R package(DNAcopy).
 #Author: Min Hu, Darlan Conterno Minussi
-#Last Updated: Mar 13th, 2019
+#Last Updated: Jun 5th, 2019
 
 
 main(){

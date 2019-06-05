@@ -162,11 +162,11 @@ colnames(Short) <- c("ID","chrom","loc.start","loc.end","num.mark","normalized_l
  		jpeg(paste(outputDir,"/Figures/profile_", sample.name, ".jpg", sep=""), height=800, width=1200)
 
     	par(mar=c(5.1,4.1,4.1,4.1))
-    	plot(x=thisRatio$abspos, y=thisRatio$ratio, log="y", main=c(paste(sample.name, ": GCnormalized+MergeLevels", sep=""),paste0("Average Read Counts Each Bin:  ",round(mean(thisRatio$bincount),0))),xaxt="n", xlab="Genome Position (Gb)", yaxt="n", ylab="Copy Number Ratio", col="skyblue", cex=0.5)
+    	plot(x=thisRatio$abspos, y=thisRatio$ratio, log="y", main=c(paste(sample.name, ": GCnormalized+MergeLevels", sep=""),paste0("Average Read Counts Each Bin:  ",round(mean(thisRatio$bincount),0))),xaxt="n", xlab="Genome Position (Gb)", yaxt="n", ylab="Copy Number Ratio", col="grey", cex=0.5)
 
     	axis(1, at=x.at, labels=x.labels)
     	axis(2, at=y.at, labels=y.labels)
-    	#lines(x=thisRatio$abspos, y=thisRatio$ratio, col="skyblue", cex=0.5)
+    	lines(x=thisRatio$abspos, y=thisRatio$ratio, col="grey", cex=0.5)
         points(x=thisRatio$abspos, y=thisRatio$seg.mean.LOWESS, col="blue",lwd=1.5, cex=0.5)
         lines(x=thisRatio$abspos, y=thisRatio$seg.mean.LOWESS, col="blue", lwd=1.5,cex=0.5)
     	#points(x=thisRatio$abspos, y=seg.mean.LOWESS, col="blue",lwd=1.5, cex=0.5)
