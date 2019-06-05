@@ -29,6 +29,6 @@ step2: run as follows
 	sh run_CNA.sh [--fastq] <fastq_path_file> [--output] <outdir_path> [--sample] <tissue sample name> [--res] <resolution of bin size> [--cpu] < Cpu number> [--undo_prune] <the proportional increase number for the CBS segment function> [alpha] <significance levels for the CBS test [filter_CellWithEmptyBin] < filter the cells with empty reads in bins > [--makeFig] <plot the CNV profile per cell>  1>process.info 2>process.log
 
 	example:
-	sh CNA_pipeline/run_CNA.sh -f fastq_input -o output
+	sh run_CNA.sh -f fastq_input -o output
 	or
-	sh CNA_pipeline/run_CNA.sh --fastq fastq_nextseq --output output_nextseq --sample SPA --filter_CellWithEmptyBin 0.05
+	sh run_CNA.sh --fastq fastq_nextseq --output output_nextseq --sample SPA --filter_CellWithEmptyBin 0.05
