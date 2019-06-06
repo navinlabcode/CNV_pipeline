@@ -95,7 +95,7 @@ def main():
 		bcMedian = binCounts[bcMedianIndex]
 	if not isinstance(bcMedianIndex, int):
 		bcMedian = binCounts[int(bcMedianIndex, .5)] + binCounts[int(bcMedianIndex, .5) - 1]  
-	print bcMedian
+	#print bcMedian
 	STATFILE.write("TotalReads\tDupsRemoved\tReadsKept\tMedianBinCount\n")
 	STATFILE.write(str(totalReads))
 	STATFILE.write("\t")
@@ -121,9 +121,9 @@ def fileToDictionary(inputFile, indexColumn):
 		id = arow[indexColumn]
 		if rd.has_key(id):
 			#rd[id].append(arow)
-			print "duplicate knowngene id = " + id
-			print "arow =   " + str(arow)
-			print "rd[id] = " + str(rd[id])
+			print ("duplicate knowngene id = " + id)
+			print ("arow =   " + str(arow))
+			print ("rd[id] = " + str(rd[id]))
 		else:
 			rd[id] = arow
 		
