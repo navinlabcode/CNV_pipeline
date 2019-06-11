@@ -137,6 +137,7 @@ run_bowtie_varbin(){
 	done
 	sort $s1_tmp |uniq > $s2_tmp
 	gnu_parallel=$(grep "parallel" $lib/CNA.config | cut -d "=" -f 2)
+	cpu="$(expr $cpu / 6)"
 	$gnu_parallel -j $cpu < $s2_tmp
 	rm -f $output/bowtie-*
 	rm -f $s1_tmp
