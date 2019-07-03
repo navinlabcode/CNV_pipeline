@@ -9,6 +9,8 @@ output:
 params:
   directory:
     value: x
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE, message=FALSE}
@@ -16,7 +18,7 @@ params:
 packages <- c("tidyverse", "fs", "shiny",
               "here", "flexdashboard", "cowplot",
               "janitor", "ape", "ggsci", "plotly",
-              "amap", "paletteer", "scales", "umap", "dbscan",
+              "amap", "paletteer", "scales", "umap", "Rphenograph",
               "flsa", "BiocManager")
 
 package.check <- lapply(packages, FUN = function(x) {
@@ -70,33 +72,43 @@ source(paste(params$directory, "/integer_cn.R", sep = ""))
 ```
 
 ```{r clustering, include = FALSE}
-if (n_cells < 15) {
+if (n_cells < 30) {
   umap_n_neighbors <- n_cells - 1
-} else umap_n_neighbors <- 15
+} else umap_n_neighbors <- 30
 
-dat_umap <- umap::umap(dat_seg_t, 
-                       random_state= 42, 
+set.seed(42)
+dat_umap <- uwot::umap(dat_seg_t, 
                        metric = "manhattan",
+                       n_threads = 20,
+                       min_dist = 0,
                        n_neighbors = umap_n_neighbors)
   
-umap_df <- data.frame(umap1 = dat_umap$layout[,1],
-                        umap2 = dat_umap$layout[,2])
+umap_df <- as.data.frame(dat_umap) %>% 
+  dplyr::rename("umap1" = "V1",
+                "umap2" = "V2")
+rownames(umap_df) <- rownames(dat_seg_t)
 
-if (n_cells < 15) {
-  snn_k_param <- n_cells - 1
-} else snn_k_param <- 15
+if (n_cells < 30) {
+  k_param <- n_cells - 1
+} else k_param <- 30
   
-cl <- dbscan::sNNclust(umap_df, k = snn_k_param, eps = .5, minPts = 5)
+pheno <- Rphenograph::Rphenograph(umap_df, k = k_param)
+cl <- tibble(cell = rownames(umap_df),
+             cluster = membership(pheno[[2]])) %>% 
+  arrange(cluster)
+
+umap_df <- umap_df[cl$cell,]
 
 # getting number of needed colors for cl
 n_colors <- cl$cluster %>% unique() %>% length()
 
+
 # ordering cells
-dat_seg_order <- dat_seg_t[order(cl$cluster),]
+dat_seg_order <- dat_seg_t[cl$cell,]
 
 # setting colors
-row_col <- setNames(colorRampPalette(paletteer_d(ggsci, 
-                                nrc_npg, 10))(n_colors),
+row_col <- setNames(colorRampPalette(paletteer_d(pals, 
+                                alphabet, 26))(n_colors),
                     levels(as.factor(cl$cluster)))
 ```
 
@@ -173,7 +185,7 @@ v <- vector(mode = "character",length = cumsum(chr_lengths)[length(chr_lengths)]
 v[chr_l_means] <- chrom.names
 v[is.na(v)] <- ""
 chr_bar <- HeatmapAnnotation(chr_text = anno_text(v, 
-                                                  gp = gpar(fontsize = 7)),
+                                                  gp = gpar(fontsize = 8)),
                              df = chr,
                              show_legend = FALSE,
                              which = "column",
