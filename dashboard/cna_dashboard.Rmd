@@ -19,7 +19,7 @@ packages <- c("tidyverse", "fs", "shiny",
               "here", "flexdashboard", "cowplot",
               "janitor", "ape", "ggsci", "plotly",
               "amap", "paletteer", "scales", "umap", "Rphenograph",
-              "flsa", "BiocManager")
+              "flsa", "BiocManager", "DT")
 
 package.check <- lapply(packages, FUN = function(x) {
   if (!require(x, character.only = TRUE)) {
@@ -284,7 +284,8 @@ p <- dat_stats %>%
 
 
 # ggplotly
-ggplotly(p, tooltip = c("Cell")) 
+p
+# ggplotly(p, tooltip = "Cell") 
 ```
 
 ### Duplicates percentage: Hover mouse over cell for info
@@ -318,7 +319,8 @@ p_dups <- dat_stats %>%
 
 
 # ggplotly
-ggplotly(p_dups, tooltip = "Cell") 
+p_dups
+# ggplotly(p_dups, tooltip = "Cell") 
 ```
 
 Row
@@ -364,6 +366,21 @@ dat_stats %>%
   ylab("Frequency")
 ```
 
+Row
+-----------------------------------------------------------------------
+
+### Reads information
+
+```{r}
+dt_dat_stats <- dat_stats %>% 
+  arrange(desc(reads_kept)) %>% 
+  mutate(duplicates = scales::percent(round(duplicates,2)))
+
+DT::datatable(dt_dat_stats, options = list(pageLength = 50))
+```
+
+
+
 Phylogenetics
 =======================================================================
 
@@ -403,18 +420,18 @@ Row
 This dashboard was developed by Darlan Conterno Minussi and is a part of the Navin Lab copy number pipeline.
 
 ### Clustering
-Clustering of the data is being performed with UMAP dimension reduction followed by SNN clustering.
+Clustering of the data is being performed with UMAP dimension reduction followed by R phenograph.
 
 UMAP is using the following parameters:
 
 - Seed: 42
 - Distance: Manhattan
+- min_dist: 0
+- n_neighbors: 30 (if n_cells < 30 then k = n_cells - 1)
 
-SNN is using the following parameters:
+RPhenograph is using the following parameters:
 
-- k: 15 (if n_cells < 15 then k = n_cells - 1)
-- eps: 1
-- minPts: 5
+- k: 30 (if n_cells < 30 then k = n_cells - 1)
 
 ### Ploidy Inference
 Ploidy inference is using the fourier transform method developed by Alexander Davis. For more information please refer to the following publication.
@@ -434,6 +451,7 @@ The following packages were used in this dashboard:
 - here
 - fs
 - cowplot
+- DT
 - shiny
 - janitor
 - ape
@@ -443,8 +461,9 @@ The following packages were used in this dashboard:
 - amap
 - paletteer
 - scales
-- umap
+- uwot
 - dbscan
 - ComplexHeatmap
 - flsa
+- Rphenograph
 
