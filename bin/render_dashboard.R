@@ -21,7 +21,7 @@ rmarkdown::render(paste(args[1], "/dashboard/cna_dashboard.Rmd", sep = ""),
                                              type = "directory",
                                              regexp = "final_result$", 
                                              recursive = T), 
-                                      "/cna_dashboard.html",
+                                      paste0("/",args[2], "_cna_dashboard.html"),
                                       sep = ""),
                   params = list(
                     directory = paste(args[1], "/bin", sep = "")
