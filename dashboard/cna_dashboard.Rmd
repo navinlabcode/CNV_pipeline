@@ -9,6 +9,8 @@ output:
 params:
   directory:
     value: x
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE, message=FALSE}
@@ -16,8 +18,8 @@ params:
 packages <- c("tidyverse", "fs", "shiny",
               "here", "flexdashboard", "cowplot",
               "janitor", "ape", "ggsci", "plotly",
-              "amap", "paletteer", "scales", "umap", "dbscan",
-              "flsa", "BiocManager")
+              "amap", "paletteer", "scales", "umap", "Rphenograph",
+              "flsa", "BiocManager", "DT")
 
 package.check <- lapply(packages, FUN = function(x) {
   if (!require(x, character.only = TRUE)) {
@@ -34,7 +36,6 @@ lapply(bioc_packages, FUN = function(x) {
     library(x, character.only = TRUE)
   }
 })
-
 ```
 
 ```{r setting_up, include=FALSE}
@@ -43,13 +44,16 @@ message("Rendering Dashboard")
 
 # reading data
 dat_seg <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*seg.txt")) %>% janitor::clean_names()
+dat_seg_cp <- dat_seg %>% dplyr::select(-chrom, -chrompos, -abspos)
+
 dat_bin <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*bin.txt")) %>% janitor::clean_names()
 dat_stats <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, regex= "all_stat_metrics.txt")) %>% 
   janitor::clean_names() %>% 
   mutate(duplicates = dups_removed/total_reads)
 
 # reading ratio
-dat_rat <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*ratio.txt"))
+dat_rat <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*ratio.txt")) %>% 
+  janitor::clean_names()
 dat_rat_cp <- dat_rat %>% dplyr::select(-chrom, -chrompos, -abspos)
 
 # dat_seg setup
@@ -70,33 +74,43 @@ source(paste(params$directory, "/integer_cn.R", sep = ""))
 ```
 
 ```{r clustering, include = FALSE}
-if (n_cells < 15) {
+if (n_cells < 30) {
   umap_n_neighbors <- n_cells - 1
-} else umap_n_neighbors <- 15
+} else umap_n_neighbors <- 30
 
-dat_umap <- umap::umap(dat_seg_t, 
-                       random_state= 42, 
+set.seed(42)
+dat_umap <- uwot::umap(dat_seg_t, 
                        metric = "manhattan",
+                       n_threads = 20,
+                       min_dist = 0,
                        n_neighbors = umap_n_neighbors)
   
-umap_df <- data.frame(umap1 = dat_umap$layout[,1],
-                        umap2 = dat_umap$layout[,2])
+umap_df <- as.data.frame(dat_umap) %>% 
+  dplyr::rename("umap1" = "V1",
+                "umap2" = "V2")
+rownames(umap_df) <- rownames(dat_seg_t)
 
-if (n_cells < 15) {
-  snn_k_param <- n_cells - 1
-} else snn_k_param <- 15
+if (n_cells < 30) {
+  k_param <- n_cells - 1
+} else k_param <- 30
   
-cl <- dbscan::sNNclust(umap_df, k = snn_k_param, eps = .5, minPts = 5)
+pheno <- Rphenograph::Rphenograph(umap_df, k = k_param)
+cl <- tibble(cell = rownames(umap_df),
+             cluster = membership(pheno[[2]])) %>% 
+  arrange(cluster)
+
+umap_df <- umap_df[cl$cell,]
 
 # getting number of needed colors for cl
 n_colors <- cl$cluster %>% unique() %>% length()
 
+
 # ordering cells
-dat_seg_order <- dat_seg_t[order(cl$cluster),]
+dat_seg_order <- dat_seg_t[cl$cell,]
 
 # setting colors
-row_col <- setNames(colorRampPalette(paletteer_d(ggsci, 
-                                nrc_npg, 10))(n_colors),
+row_col <- setNames(colorRampPalette(paletteer_d(pals, 
+                                alphabet, 26))(n_colors),
                     levels(as.factor(cl$cluster)))
 ```
 
@@ -173,7 +187,7 @@ v <- vector(mode = "character",length = cumsum(chr_lengths)[length(chr_lengths)]
 v[chr_l_means] <- chrom.names
 v[is.na(v)] <- ""
 chr_bar <- HeatmapAnnotation(chr_text = anno_text(v, 
-                                                  gp = gpar(fontsize = 7)),
+                                                  gp = gpar(fontsize = 8)),
                              df = chr,
                              show_legend = FALSE,
                              which = "column",
@@ -272,7 +286,8 @@ p <- dat_stats %>%
 
 
 # ggplotly
-ggplotly(p, tooltip = c("Cell")) 
+p
+# ggplotly(p, tooltip = "Cell") 
 ```
 
 ### Duplicates percentage: Hover mouse over cell for info
@@ -306,7 +321,8 @@ p_dups <- dat_stats %>%
 
 
 # ggplotly
-ggplotly(p_dups, tooltip = "Cell") 
+p_dups
+# ggplotly(p_dups, tooltip = "Cell") 
 ```
 
 Row
@@ -352,6 +368,249 @@ dat_stats %>%
   ylab("Frequency")
 ```
 
+Row
+-----------------------------------------------------------------------
+
+### Reads information
+
+```{r}
+dt_dat_stats <- dat_stats %>% 
+  arrange(desc(reads_kept)) %>% 
+  mutate(duplicates = scales::percent(round(duplicates,2)))
+
+DT::datatable(dt_dat_stats, options = list(pageLength = 50))
+```
+
+Example Profiles
+=======================================================================
+```{r}
+### making the plots 
+
+packages <- c("tidyverse", "here", "parallel", "fs", "janitor", "pals")
+# if a package is installed, it will be loaded
+# if any are not, the missing package(s) will be installed and loaded
+package.check <- lapply(packages, FUN = function(x) {
+  if (!require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE)
+    library(x, character.only = TRUE)
+  }
+})
+
+
+# reading ratio
+dat_rat_cp <- dat_rat %>% dplyr::select(-chrom, -chrompos, -abspos)
+dat_seg_cp <- dat_seg %>% dplyr::select(-chrom, -chrompos, -abspos)
+
+# saving the median
+# filtering errors of ploidy (I'm considering 1 calls as error)
+dat_ploidy_filtered <- dat_ploidy %>% 
+  dplyr::filter(ploidy != 1)
+ploidy_median <- median(dat_ploidy_filtered$ploidy)
+
+# establishing a value to truncate the ploidy that will be used for the colors later
+ploidy_trunc_val <- round(ploidy_median) * 2
+
+# Creating absolute position of chromosomes, code slighly modified from Alex's ggplot CNV heatmap
+chrom.lengths <-
+  c(
+    249250621,
+    243199373,
+    198022430,
+    191154276,
+    180915260,
+    171115067,
+    159138663,
+    146364022,
+    141213431,
+    135534747,
+    135006516,
+    133851895,
+    115169878,
+    107349540,
+    102531392,
+    90354753,
+    81195210,
+    78077248,
+    59128983,
+    63025520,
+    48129895,
+    51304566,
+    155270560,
+    59373566
+  )
+chrom.names <- c(paste("chr", 1:22, sep = ""),
+                 "chrX",
+                 "chrY")
+chrom.abspos.end <- cumsum(chrom.lengths)
+names(chrom.abspos.end) <- chrom.names
+chrom.abspos.start <-
+  c(0, chrom.abspos.end[1:(length(chrom.abspos.end) - 1)])
+names(chrom.abspos.start) <- names(chrom.abspos.end)
+
+# Creating data frame object for chromosome rectangles shadows
+chrom.rects <- data.frame(xstart = chrom.abspos.start,
+                          xend = chrom.abspos.end)
+xbreaks <- rowMeans(chrom.rects)
+chrom.rects$colors <-rep(c("white", "gray"), 12)
+
+#storing chromosomes info
+chrom_info <- dat_bin %>% dplyr::select(c(abspos,chrom, chrompos))
+
+# removing chromosomes info to calculate the ratios
+bin_data_cp <- dat_bin %>% dplyr::select(-c(abspos,chrom, chrompos))
+ratios_data <- sweep(bin_data_cp, 2, apply(bin_data_cp, 2, mean), '/')
+
+# removing chromosomes info from seg_data
+dat_seg_cp <- dat_seg %>% dplyr::select(-chrom, -chrompos)
+
+# adding chromosomes info back
+ratios_data$abspos <- chrom_info$abspos
+
+# ggplot will need the long format tables, using gather
+ratios_data_l_gat <- tidyr::gather(data = ratios_data %>% dplyr::select(1:30, abspos), key = "cell", value = "ratios_rat", -abspos)
+long_seg_t_gat <- tidyr::gather(data = dat_seg_cp %>% dplyr::select(1:30, abspos), key = "cell", value = "seg_mean", -abspos)
+
+# I'll need to join both tables
+df <- inner_join(ratios_data_l_gat, long_seg_t_gat)
+# ploidy scaling the seg values
+df <- df %>% dplyr::mutate(int_value = round(ploidy_median*seg_mean))
+
+# obtaining the max value. I'll use later on the plot
+max_int_value <- max(df$int_value)
+# truncating so I can limit the colors
+df$int_value[df$int_value > ploidy_trunc_val] <- ploidy_trunc_val
+
+# setting colors of the ratios according to the inferred ploidy
+ratio_colors <- structure(
+  pals::ocean.balance(length(0:ploidy_trunc_val)),
+  names = 0:ploidy_trunc_val
+)
+# saving the names of the cells so I can iterate later
+cell_names <- df$cell %>% unique()
+
+#chromosomes squares background
+ggchr.back <-
+  list(geom_rect(
+    data = chrom.rects,
+    aes(
+      xmin = xstart,
+      xmax = xend,
+      ymin = -Inf,
+      ymax = Inf,
+      fill = colors
+    ),
+    alpha = .2
+  ), scale_fill_identity()) 
+
+sec_breaks <- c(0, 0.5e9, 1e9, 1.5e9, 2e9, 2.5e9, 3e9)
+sec_labels <- c(0, 0.5, 1, 1.5, 2, 2.5, 3)
+
+ggaes <- list(
+  scale_x_continuous(breaks = xbreaks,
+                     labels = gsub("chr", "", chrom.names),
+                     position = "top",
+                     expand = c(0,0),
+                     sec.axis = sec_axis(~., breaks = sec_breaks, labels = sec_labels, name = "Genome Position (Gb)")),
+  theme_classic(),
+  theme(
+    axis.text.x = element_text(angle = 0,
+                               vjust = .5,
+                               size = 8),
+    axis.text.y = element_text(size = 8),
+    axis.title.y.right = element_text(margin = margin(l = 10)),
+    legend.position = "none",
+    axis.ticks.x = element_blank(),
+    axis.title = element_text(size = 8),
+    plot.title = element_text(size = 8),
+    axis.text = element_text(size = 8)
+  )
+)
+
+plots <- invisible(parallel::mclapply(seq_along(cell_names), function (x) {
+  # just get the mean to calculate the CN, should be 1 though...
+  mean_ratios_cell <- df %>% dplyr::filter(cell == cell_names[x]) %>% pull(ratios_rat) %>% mean()
+  
+  #getting cell ploidy info
+  cell_ploidy_info <- dat_ploidy %>% 
+    dplyr::filter(sample_name == cell_names[x])
+  
+  p <- ggplot(df %>% filter(cell == cell_names[x])) +
+    geom_point(aes(abspos, ratios_rat, color = as.factor(int_value)),
+               shape = 20,
+               size = 1,
+               alpha = .7) +
+    geom_line(aes(abspos, seg_mean), col = "black",
+              size = 1) +
+    ggchr.back +
+    ggaes +
+    xlab("") +
+    ylab("ratios") +
+    ggtitle(paste(toupper(cell_ploidy_info$sample_name),
+                  " Inferred ploidy: ", 
+                  round(cell_ploidy_info$ploidy,2),
+                  " - Confidence: ",
+                  round(cell_ploidy_info$peak_height,2), sep = "")) +
+    scale_y_continuous(sec.axis = sec_axis(~.*cell_ploidy_info$ploidy/mean_ratios_cell, breaks = seq(0,max_int_value,1), name  = "Copy Number"), 
+                       name = "Ratios") +
+    scale_color_manual(values = ratio_colors) +
+    theme(plot.title = element_text(size = 7),
+          axis.title = element_text(size = 7),
+          axis.text = element_text(size = 7))
+  
+  return(p)
+}
+, mc.cores = 20)
+)
+```
+
+Row {.tabset}
+-----------------------------------------------------------------------
+
+### Cells 1-2
+```{r}
+cowplot::plot_grid(plotlist = plots[1:2], ncol = 1)
+```
+
+### Cells 3-4
+```{r}
+cowplot::plot_grid(plotlist = plots[3:4], ncol = 1)
+```
+
+### Cells 5-6
+```{r}
+cowplot::plot_grid(plotlist = plots[5:6], ncol = 1)
+```
+
+### Cells 7-8
+```{r}
+cowplot::plot_grid(plotlist = plots[7:8], ncol = 1)
+```
+
+### Cells 9-10
+```{r}
+cowplot::plot_grid(plotlist = plots[9:10], ncol = 1)
+```
+
+### Cells 11-12
+```{r}
+cowplot::plot_grid(plotlist = plots[11:12], ncol = 1)
+```
+
+### Cells 13-14
+```{r}
+cowplot::plot_grid(plotlist = plots[13:14], ncol = 1)
+```
+
+### Cells 15-16
+```{r}
+cowplot::plot_grid(plotlist = plots[15:16], ncol = 1)
+```
+
+### Cells 17-18
+```{r}
+cowplot::plot_grid(plotlist = plots[17:18], ncol = 1)
+```
+
 Phylogenetics
 =======================================================================
 
@@ -391,18 +650,18 @@ Row
 This dashboard was developed by Darlan Conterno Minussi and is a part of the Navin Lab copy number pipeline.
 
 ### Clustering
-Clustering of the data is being performed with UMAP dimension reduction followed by SNN clustering.
+Clustering of the data is being performed with UMAP dimension reduction followed by R phenograph.
 
 UMAP is using the following parameters:
 
 - Seed: 42
 - Distance: Manhattan
+- min_dist: 0
+- n_neighbors: 30 (if n_cells < 30 then k = n_cells - 1)
 
-SNN is using the following parameters:
+RPhenograph is using the following parameters:
 
-- k: 15 (if n_cells < 15 then k = n_cells - 1)
-- eps: 1
-- minPts: 5
+- k: 30 (if n_cells < 30 then k = n_cells - 1)
 
 ### Ploidy Inference
 Ploidy inference is using the fourier transform method developed by Alexander Davis. For more information please refer to the following publication.
@@ -422,6 +681,7 @@ The following packages were used in this dashboard:
 - here
 - fs
 - cowplot
+- DT
 - shiny
 - janitor
 - ape
@@ -431,8 +691,9 @@ The following packages were used in this dashboard:
 - amap
 - paletteer
 - scales
-- umap
+- uwot
 - dbscan
 - ComplexHeatmap
 - flsa
+- Rphenograph
 
