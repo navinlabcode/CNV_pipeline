@@ -202,7 +202,7 @@ heatmap(){
 
 dashboard(){
 
-	Rscript $bin/render_dashboard.R "$root_dir"
+	Rscript $bin/render_dashboard.R "$root_dir" "$sample"
 
 }
 
