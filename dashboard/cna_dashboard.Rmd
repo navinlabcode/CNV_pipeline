@@ -18,8 +18,8 @@ editor_options:
 packages <- c("tidyverse", "fs", "shiny",
               "here", "flexdashboard", "cowplot",
               "janitor", "ape", "ggsci", "plotly",
-              "amap", "paletteer", "scales", "umap", "Rphenograph",
-              "flsa", "BiocManager", "DT")
+              "amap", "paletteer", "scales", "umap","uwot",
+              "flsa", "BiocManager", "DT", "devtools")
 
 package.check <- lapply(packages, FUN = function(x) {
   if (!require(x, character.only = TRUE)) {
@@ -36,6 +36,15 @@ lapply(bioc_packages, FUN = function(x) {
     library(x, character.only = TRUE)
   }
 })
+
+git_packages<- c("Rphenograph")
+lapply(git_packages, FUN = function(x) {
+if(!require(x, character.only = TRUE)){
+  devtools::install_github("JinmiaoChenLab/Rphenograph")
+  library(x,character.only = TRUE)
+}
+})
+
 ```
 
 ```{r setting_up, include=FALSE}

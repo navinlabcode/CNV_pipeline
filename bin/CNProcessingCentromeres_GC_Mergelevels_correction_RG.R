@@ -188,17 +188,20 @@ write.table(Short, sep="\t", file=paste(outputDir, "/IGV_shorts/", sample.name, 
 
 normlized_seg<-list(thisRatio$seg.mean.LOWESS)
 names(normlized_seg)<-sample.name
-sub_thisShort<-list(thisShort)
-names(sub_thisShort)<-sample.name
+sub_thisShort<-thisShort
+names(sub_thisShort)<-c("ID","chrom","loc.start","loc.end","num.mark","Raw_log2_seg.mean")     
 #return(normlized_seg)
+combined_nor_log_seg_Short<-as.data.frame(Short)
+names(combined_nor_log_seg_Short)<-c("ID","chrom","loc.start","loc.end","num.mark","Normalized_log2_seg.mean")   
 
 results <- list(
-  normlized_seg=normlized_seg,
-  thisShort=thisShort
+  normlized_seg=normlized_seg,                             
+  combined_log_thisShort=sub_thisShort,                             
+  combined_nor_log_seg_Short=combined_nor_log_seg_Short   
 )
 return(results)
 }
-
+  
 mc <- getOption("mc.cores", cpu)
 res<-mclapply(4:ncol(cnRatio),fun_parallel_seg,mc.cores=mc)
 
@@ -206,14 +209,18 @@ all_seg<-as.data.frame(sapply(res,function(x){x$normlized_seg}))
 chr_info<-cnRatio[, c("chrom","chrompos","abspos")]
 all_seg<-cbind(chr_info,all_seg)
 
-all_thisShort<-lapply(res,function(x){x$thisShort})
-all_thisShort<-do.call(rbind,all_thisShort)
+all_log_seg<-lapply(res,function(x){x$combined_log_thisShort})
+all_log_seg<-do.call(rbind,all_log_seg)
 
-  write.table(all_seg, file = paste(outputDir, "/uber.", dataName, ".seg.txt", sep=""),
+all_nor_log_seg<-lapply(res,function(x){x$combined_nor_log_seg_Short})
+all_nor_log_seg<-do.call(rbind,all_nor_log_seg)
+
+write.table(all_seg, file = paste(outputDir, "/uber.", dataName, ".seg.txt", sep=""),
             quote = FALSE, sep = "\t",row.names = FALSE)
+#  colnames(all_thisShort) <- c("ID","chrom","loc.start","loc.end","num.mark","Raw_seg.mean")
 
-  colnames(all_thisShort) <- c("ID","chrom","loc.start","loc.end","num.mark","Raw_seg.mean")
-
-  write.table(all_thisShort, sep="\t", file=paste(outputDir, "/IGV_shorts/", dataName, ".all.hg19.50k.varbin.seg",
+  write.table(all_log_seg, sep="\t", file=paste(outputDir, "/IGV_shorts/", dataName, ".all.hg19.50k.varbin.seg",
                                               sep=""), quote=FALSE, row.names=FALSE, col.names=TRUE)
+  write.table(all_nor_log_seg, sep="\t", file=paste(outputDir, "/IGV_shorts/", dataName, ".all.hg19.50k.varbin.normalized.seg",
+                                                sep=""), quote=FALSE, row.names=FALSE, col.names=TRUE)
 }
