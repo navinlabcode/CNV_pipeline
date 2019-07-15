@@ -143,10 +143,9 @@ library(parallel)
 
 #for(file in list.files(vb_folder, pattern=varbinPattern, full.names=TRUE))
 fun_parallel<-function(x){
-	file<-all_files[x]
-	message(file)
+	    file<-all_files[x]
       if(file.info(file)$size==0){
-       	return(NULL)
+       	next
       }		
      vabtemp <- read.delim(file, header=FALSE)
     
@@ -154,7 +153,7 @@ fun_parallel<-function(x){
 	 # print (filter_CellWithEmptyBin*nrow(vabtemp))
 	  flag <- TRUE
 	  tryCatch({ if(sum(vabtemp$V5==0) > filter_CellWithEmptyBin*nrow(vabtemp)){
-      	return(NULL)
+      	next
      	 }
                 vabtemp$V5[vabtemp$V5==0] <- 0.001
 		            vabtemp$V6 <- lowess.gc(gcFile$gc.content,vabtemp$V5)

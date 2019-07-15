@@ -11,11 +11,11 @@ main(){
 #	run_bowtie_varbin
 #	read_align_stat
 	filter
-#	segmentation
-#	heatmap
-#	dashboard
-#	ratio_plots
-#	clean
+	segmentation
+	heatmap
+	dashboard
+	ratio_plots
+	clean
      }
 
 help="
