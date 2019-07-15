@@ -98,6 +98,7 @@ if($fq2){
 	$fname=~/^(.*?)\.fastq/;
 	$pre=$1;
 }
+$pre=~s/\_L00\d//g;
 $samName=$samdir."/".$pre.".sam";
 
 #get sam file
