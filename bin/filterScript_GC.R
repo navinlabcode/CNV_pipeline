@@ -141,26 +141,23 @@ if(!file.exists(blvb))
 
 library(parallel)
 
-#for(file in list.files(vb_folder, pattern=varbinPattern, full.names=TRUE))
+
 fun_parallel<-function(x){
 	file<-all_files[x]
-	message(file)
+
       if(file.info(file)$size==0){
-       	return(NULL)
+       	return("file is empty")
       }		
      vabtemp <- read.delim(file, header=FALSE)
     
-	  #print (sum(vabtemp$V5==0))
-	 # print (filter_CellWithEmptyBin*nrow(vabtemp))
-	  flag <- TRUE
 	  tryCatch({ if(sum(vabtemp$V5==0) > filter_CellWithEmptyBin*nrow(vabtemp)){
-      	return(NULL)
+      	return("most bins are empty")
      	 }
                 vabtemp$V5[vabtemp$V5==0] <- 0.001
 		            vabtemp$V6 <- lowess.gc(gcFile$gc.content,vabtemp$V5)
                 vabtemp$V7 <- vabtemp$V6*median(vabtemp$V4)
                 if(sum(is.na(vabtemp$V7))>0){
-		            next	
+                  return("NA from lowess.gc")	
 	            	}
 		temp <- strsplit(file, "/")[[1]]
 		sampleName <- strsplit(temp[length(temp)],split=".vb", fixed=TRUE)[[1]]
@@ -170,7 +167,7 @@ fun_parallel<-function(x){
 	write.table(x=vabtemp[-toRemove,], file=paste(blvb,  paste(sampleName,"-bl", varbinPattern, sep=""), sep="/"), col.names=FALSE, row.names=FALSE, sep="\t")
 	}
 		
-		}, error=function(e){})
+		}, error=function(e){return(NULL)})
 }
 
 
