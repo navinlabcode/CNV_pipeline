@@ -60,6 +60,18 @@ dat_stats <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, regex= "al
   janitor::clean_names() %>% 
   mutate(duplicates = dups_removed/total_reads)
 
+# hackish way to get sample names match with clean_names result. In the future it can be substitute by make_clean_names when janitor function goes to CRAN
+cleared_names_stats <- setNames(1:length(dat_stats$sample_name), dat_stats$sample_name) %>% janitor::clean_names()
+
+dat_stats <- dat_stats %>% 
+  mutate(sample_name = names(cleared_names_stats)) %>% 
+  dplyr::filter(sample_name %in% names(dat_seg))
+
+# dat_stats metrics
+dat_stats_metrics <- dat_stats %>% 
+  dplyr::select(-sample_name) %>% 
+  summarise_all(median)
+
 # reading ratio
 dat_rat <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*ratio.txt")) %>% 
   janitor::clean_names()
@@ -126,7 +138,7 @@ row_col <- setNames(colorRampPalette(paletteer_d(pals,
 Summary
 =======================================================================
 
-Row
+Column
 -----------------------------------------------------------------------
 
 ### Cells
@@ -138,12 +150,34 @@ dat_seg %>%
   valueBox(icon = "circle")
 ```
 
-### Median PCR Duplicates
+### Total Reads (Median)
+
+```{r tot_reads_val_box}
+dat_stats_metrics$total_reads %>% 
+  valueBox(icon = "percentage")
+```
+
+### Kept Reads (Median)
+
+```{r kep_reads_val_box}
+dat_stats_metrics$reads_kept %>% 
+  valueBox(icon = "percentage")
+```
+
+### Bin Count (Median)
+
+```{r bincount_val_box}
+dat_stats_metrics$median_bin_count %>% 
+  valueBox(icon = "percentage")
+```
+
+### PCR Duplicates (Median)
 
 ```{r calculating_pcr_duplicates}
-median(dat_stats$duplicates) %>% 
-  scales::percent() %>% 
-  valueBox(icon = "percentage")
+dups <- round(dat_stats_metrics$duplicates*100,2)
+gauge(dups, min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(0, 29), danger = c(30, 100)
+))
 ```
 
 
@@ -296,7 +330,7 @@ p <- dat_stats %>%
 
 # ggplotly
 p
-# ggplotly(p, tooltip = "Cell") 
+# ggplotly(p, tooltip = "Cell")
 ```
 
 ### Duplicates percentage: Hover mouse over cell for info
@@ -345,6 +379,7 @@ dat_bin %>%
   purrr::map_dfr(median) %>% 
   gather(key = "cell",
          value = "bin_median") %>% 
+  dplyr::filter(bin_median > 1) %>% 
   ggplot() +
   geom_histogram(aes(x = bin_median, 
                      y= ..count../sum(..count..)),
@@ -361,7 +396,8 @@ dat_stats %>%
   gather(key = "parameter",
          value = "value",
          -sample_name) %>% 
-  dplyr::filter(parameter %in% c("total_reads", "reads_kept")) %>% 
+  dplyr::filter(parameter %in% c("total_reads", "reads_kept"),
+                value > 500) %>% 
   ggplot() +
   geom_histogram(aes(x = value,
                      y = ..count../sum(..count..),
