@@ -96,7 +96,7 @@ CHR <- cbind(rbpal(2)[as.numeric(chr)], rbpal(2)[as.numeric(chr)])
 heatmap_file<- paste(heatmap_dir,"heatmap_cluster.jpeg",sep="/")
 
 jpeg(heatmap_file, height=1000, width=1200)
-source("/volumes/seq/code/PIPELINES/CNA_pipeline_v1.4/bin/heatmap.3.R")
+source("https://raw.githubusercontent.com/obigriffith/biostar-tutorials/master/Heatmaps/heatmap.3.R")
 heatmap.3(as.matrix(mat), dendrogram="none", distfun = dist, hclustfun = function(x) hclust(x, method='ward.D2'),Colv=NA, 
           ColSideColors=CHR, Rowv=TRUE,notecol="black",col=palettes,breaks=breaks, symm=F,symkey=F,symbreaks=T,trace="none",
           cexRow=0.5, plot.row.partition=TRUE)
