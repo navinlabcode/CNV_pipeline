@@ -13,9 +13,10 @@ CNProcessingCentromeres <- function(dataName = dataName,
 
 tryCatch(expr = { library("DNAcopy")},
          error = function(e) {
-           source("https://bioconductor.org/biocLite.R")
-           biocLite("DNAcopy")},
-         finally = library("DNAcopy"))
+	if (!requireNamespace("BiocManager", quietly = TRUE))
+    	install.packages("BiocManager")
+        BiocManager::install("DNAcopy")},
+        finally = library("DNAcopy"))
 library(parallel)
 
   centr.loc <- read.delim(centName, as.is=TRUE)

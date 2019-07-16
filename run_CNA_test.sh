@@ -10,11 +10,11 @@ main(){
 	create_folder
 #	run_bowtie_varbin
 #	read_align_stat
-	filter
-	segmentation
-	heatmap
+#	filter
+#	segmentation
+#	heatmap
 	dashboard
-	ratio_plots
+#	ratio_plots
 	clean
      }
 
