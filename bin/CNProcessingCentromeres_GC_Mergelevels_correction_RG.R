@@ -159,12 +159,12 @@ colnames(Short) <- c("ID","chrom","loc.start","loc.end","num.mark","normalized_l
     	chr.at <- vlines + (vlines.shift - vlines) / 2
     	x.at <- c(0, 0.5, 1, 1.5, 2, 2.5, 3) * 10^9
     	x.labels <- c("0", "0.5", "1.0", "1.5", "2.0", "2.5", "3.0")
-    	y.at <- c(0.005, 0.02, 0.10, 0.50, 6.00)
-    	y.labels <- c("0.005", "0.02", "0.10", "0.50", "6.00")
+    	y.at <- c(0.005, 0.02, 0.10, 0.50, 2.0, 6.00)
+    	y.labels <- c("0.005", "0.02", "0.10", "0.50", "0.20", "6.00")
     	 print("Making figure")
  		jpeg(paste(outputDir,"/Figures/profile_", sample.name, ".jpg", sep=""), height=800, width=1200)
 
-    	par(mar=c(5.1,4.1,4.1,4.1))
+    	par(mar=c(5.1,4.1,6.1,4.1))
     	plot(x=thisRatio$abspos, y=thisRatio$ratio, log="y",ylim=range(0.05,6),main=c(paste(sample.name, ": GCnormalized+MergeLevels", sep=""),paste0("Average Read Counts Each Bin:  ",round(mean(thisRatio$bincount),0)),paste0("Coefficient of Variation (CV): ",round(cv(thisRatio$bincount),2))),xaxt="n", xlab="Genome Position (Gb)", yaxt="n", ylab="Copy Number Ratio", col="grey", cex=0.5)
 
     	axis(1, at=x.at, labels=x.labels)
