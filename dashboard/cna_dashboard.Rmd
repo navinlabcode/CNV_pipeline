@@ -266,11 +266,7 @@ dat_ploidy <- Reduce(rbind,
                               sep = ""))
 
 # hackish way to get sample names match with clean_names result. In the future it can be substitute by make_clean_names when janitor function goes to CRAN
-cleared_names <- setNames(1:length(dat_ploidy$sample_name), dat_ploidy$sample_name) %>% janitor::clean_names()
-
-dat_ploidy <- dat_ploidy %>% 
-  dplyr::mutate(sample_name = names(cleared_names))
-  
+dat_ploidy$sample_name <- janitor::make_clean_names(sample_name)
 
 # obtaining SNN clusters labels to use as colors, matching with cell name and plotting
 umap_cl_result <- umap_df %>% rownames_to_column("sample_name") %>%  mutate(cluster = cl$cluster) %>% dplyr::select(sample_name, cluster) 
