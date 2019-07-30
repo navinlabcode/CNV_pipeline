@@ -58,7 +58,7 @@ rownames(sam) <- colnames(segmentInfo)[4:n]
 rownames(sam) <-gsub("\\.","-",rownames(sam))
 
 ## filter out the cells with Reads counts less than 1M
-selected_cell<-rownames(raw_reads[raw_reads$TotalReads>1000000,])
+selected_cell<-rownames(raw_reads[raw_reads$TotalReads>100000,])
 sam<-sam[match(selected_cell,rownames(sam)),]
 dim(sam)
 
