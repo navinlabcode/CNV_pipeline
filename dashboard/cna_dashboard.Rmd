@@ -60,11 +60,10 @@ dat_stats <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, regex= "al
   janitor::clean_names() %>% 
   mutate(duplicates = dups_removed/total_reads)
 
-# hackish way to get sample names match with clean_names result. In the future it can be substitute by make_clean_names when janitor function goes to CRAN
-cleared_names_stats <- setNames(1:length(dat_stats$sample_name), dat_stats$sample_name) %>% janitor::clean_names()
+# correcting names
+dat_stats$sample_name <- make_clean_names(dat_stats$sample_name)
 
-dat_stats <- dat_stats %>% 
-  mutate(sample_name = names(cleared_names_stats)) %>% 
+dat_stats <- dat_stats %>%
   dplyr::filter(sample_name %in% names(dat_seg))
 
 # dat_stats metrics
@@ -117,14 +116,13 @@ if (n_cells < 30) {
   
 pheno <- Rphenograph::Rphenograph(umap_df, k = k_param)
 cl <- tibble(cell = rownames(umap_df),
-             cluster = membership(pheno[[2]])) %>% 
+             cluster = igraph::membership(pheno[[2]])) %>% 
   arrange(cluster)
 
 umap_df <- umap_df[cl$cell,]
 
 # getting number of needed colors for cl
 n_colors <- cl$cluster %>% unique() %>% length()
-
 
 # ordering cells
 dat_seg_order <- dat_seg_t[cl$cell,]
@@ -179,7 +177,6 @@ gauge(dups, min = 0, max = 100, symbol = '%', gaugeSectors(
   success = c(0, 29), danger = c(30, 100)
 ))
 ```
-
 
 ### UMAP. Hover mouse for more info.
 
@@ -237,11 +234,11 @@ chr_bar <- HeatmapAnnotation(chr_text = anno_text(v,
                              col = list(chr = c("1" = "grey88", "2" = "black"))
 )
 
-heat_row_col <- rowAnnotation(
+heat_row_col <- rowAnnotation(df =
   data.frame(clusters = sort(cl$cluster)),
              col = list(clusters = row_col))
 
-ht <- Heatmap(log2(dat_seg_order+1e-3),
+ht <- Heatmap(as.matrix(log2(dat_seg_order+1e-3)),
               cluster_columns = FALSE,
               cluster_rows = FALSE,
               show_row_names = FALSE,
