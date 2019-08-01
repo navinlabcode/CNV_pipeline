@@ -159,8 +159,8 @@ colnames(Short) <- c("ID","chrom","loc.start","loc.end","num.mark","normalized_l
     	chr.at <- vlines + (vlines.shift - vlines) / 2
     	x.at <- c(0, 0.5, 1, 1.5, 2, 2.5, 3) * 10^9
     	x.labels <- c("0", "0.5", "1.0", "1.5", "2.0", "2.5", "3.0")
-    	y.at <- c(0.005, 0.02, 0.10, 0.50, 2.0, 6.00)
-    	y.labels <- c("0.005", "0.02", "0.10", "0.50", "0.20", "6.00")
+    	y.at <- c(0.005, 0.02, 0.1, 0.5, 2.0, 6.0)
+    	y.labels <- c("0.005", "0.02", "0.1", "0.5", "2.0", "6.0")
     	 print("Making figure")
  		jpeg(paste(outputDir,"/Figures/profile_", sample.name, ".jpg", sep=""), height=800, width=1200)
 

@@ -59,7 +59,7 @@ rownames(sam) <-gsub("\\.","-",rownames(sam))
 
 ## filter out the cells with Reads counts less than 1M
 selected_cell<-rownames(raw_reads[raw_reads$TotalReads>100000,])
-sam<-sam[match(selected_cell,rownames(sam)),]
+sam<-sam[rownames(sam) %in% selected_cell,]
 dim(sam)
 
 tryCatch(expr = { library("flowViz")}, 
