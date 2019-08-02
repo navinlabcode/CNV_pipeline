@@ -2,7 +2,6 @@
 title: "CNA dashboard"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: columns
     vertical_layout: fill
     theme: default
     logo: navin_lab_logo.png
@@ -12,6 +11,12 @@ params:
 editor_options: 
   chunk_output_type: console
 ---
+
+``` {js}
+// Inverse color of navigation bar.
+$('.navbar-inverse').removeClass('navbar-inverse').addClass('navbar-default');
+```
+
 
 ```{r setup, include=FALSE, message=FALSE}
 # checking for packages, loading or installing
@@ -24,7 +29,7 @@ packages <- c("tidyverse", "fs", "shiny",
 package.check <- lapply(packages, FUN = function(x) {
   if (!require(x, character.only = TRUE)) {
     install.packages(x, dependencies = TRUE,repos = "http://cran.us.r-project.org")
-    library(x, character.only = TRUE)
+    suppressWarnings(library(x, character.only = TRUE))
   }
 })
 
@@ -33,7 +38,7 @@ bioc_packages <- c("ggtree", "ComplexHeatmap")
 lapply(bioc_packages, FUN = function(x) {
   if (!require(x, character.only = TRUE)) {
     BiocManager::install(x, update = FALSE)
-    library(x, character.only = TRUE)
+    suppressWarnings(library(x, character.only = TRUE))
   }
 })
 
@@ -137,10 +142,10 @@ row_col <- setNames(colorRampPalette(paletteer_d(pals,
 Summary
 =======================================================================
 
-Column
+Column {data-width=200}
 -----------------------------------------------------------------------
 
-### Cells
+### Cells {.colored}
 
 ```{r}
 dat_seg %>% 
@@ -149,62 +154,44 @@ dat_seg %>%
   valueBox(icon = "circle")
 ```
 
-### Total Reads (Median)
+### Total Reads (Median) {.colored}
 
 ```{r tot_reads_val_box}
 dat_stats_metrics$total_reads %>% 
   valueBox(icon = "percentage")
 ```
 
-### Kept Reads (Median)
+### Kept Reads (Median) {.colored}
 
 ```{r kep_reads_val_box}
 dat_stats_metrics$reads_kept %>% 
   valueBox(icon = "percentage")
 ```
 
-### Bin Count (Median)
+### Bin Count (Median) {.colored}
 
 ```{r bincount_val_box}
 dat_stats_metrics$median_bin_count %>% 
   valueBox(icon = "percentage")
 ```
 
-### PCR Duplicates (Median)
+### PCR Duplicates (Median) {.colored}
 
 ```{r calculating_pcr_duplicates}
 dups <- round(dat_stats_metrics$duplicates*100,2)
-gauge(dups, min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(0, 29), danger = c(30, 100)
-))
+valueBox(paste0(dups,"%"))
 ```
 
-### UMAP. Hover mouse for more info.
-
-```{r generating_umap}
-p_umap <- umap_df %>% 
-  rownames_to_column(var = "Cell") %>%
-  dplyr::mutate(cluster = cl$cluster) %>% 
-  ggplot() +
-  geom_point(aes(x = umap1, 
-                 y = umap2, 
-                 color = as.factor(cluster),
-                 label = Cell),
-             show.legend = FALSE) +
-  scale_color_manual(values = row_col) +
-  theme(legend.position = "none",
-        panel.grid = element_blank(),
-        axis.line = element_blank(),
-        axis.text = element_blank(),
-        axis.ticks = element_blank()) 
-
-ggplotly(p_umap, tooltip = "Cell")
+### Clusters
+```{r n_clusters}
+cl$cluster %>% unique() %>% length() %>% 
+  valueBox()
 ```
 
-Row
+Column
 -----------------------------------------------------------------------
 
-### Heatmap {data-height=650}
+### Heatmap {data-width=600}
 
 ```{r making_heatmap}
 # chromosome annotation top bar
@@ -251,7 +238,34 @@ ht <- Heatmap(as.matrix(log2(dat_seg_order+1e-3)),
 draw(heat_row_col + ht)
 ```
 
-### Ploidy Inference. Hover mouse for more info. {data-height=350}
+
+Column 
+-----------------------------------------------------------------------
+
+### UMAP. Hover mouse for more info. {data-height=500}
+
+```{r generating_umap}
+p_umap <- umap_df %>% 
+  rownames_to_column(var = "Cell") %>%
+  dplyr::mutate(cluster = cl$cluster) %>% 
+  ggplot() +
+  geom_point(aes(x = umap1, 
+                 y = umap2, 
+                 color = as.factor(cluster),
+                 label = Cell),
+             show.legend = FALSE) +
+  scale_color_manual(values = row_col) +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) 
+
+ggplotly(p_umap, tooltip = "Cell")
+```
+
+
+### Ploidy Inference. Hover mouse for more info. {data-height=500}
 
 ```{r infering_ploidies}
 dat_ploidy <- Reduce(rbind, 
@@ -266,7 +280,7 @@ dat_ploidy <- Reduce(rbind,
                               ploidy,
                               sep = ""))
 
-# obtaining SNN clusters labels to use as colors, matching with cell name and plotting
+# obtaining clusters labels to use as colors, matching with cell name and plotting
 umap_cl_result <- umap_df %>% rownames_to_column("sample_name") %>%  mutate(cluster = cl$cluster) %>% dplyr::select(sample_name, cluster) 
 
 dat_ploidy_cl <- inner_join(dat_ploidy,umap_cl_result, by = "sample_name")
@@ -281,7 +295,7 @@ p_ploidy <- ggplot(dat_ploidy_cl) +
   scale_y_continuous(breaks = scales::pretty_breaks()) +
   xlab("Inferred ploidy") +
   ylab("Peak Height (Confidence)") + 
-  labs(color = "SNN Cluster")
+  labs(color = "Cluster")
 
 ggplotly(p_ploidy, tooltip = "Cell")
 ```
@@ -289,10 +303,10 @@ ggplotly(p_ploidy, tooltip = "Cell")
 QC
 =======================================================================
 
-Row
+Row {.tabset .tabset-fade data-width=400}
 -----------------------------------------------------------------------
 
-### Reads Kept: Hover mouse over cell for info
+### Reads Kept
 
 ```{r}
 # creates a index for x and y so I have a square matrix, also creates a lable for plotly
@@ -324,7 +338,7 @@ p
 # ggplotly(p, tooltip = "Cell")
 ```
 
-### Duplicates percentage: Hover mouse over cell for info
+### Duplicates percentage
 
 ```{r}
 # creates a index for x and y so I have a square matrix, also creates a lable for plotly
@@ -359,10 +373,7 @@ p_dups
 # ggplotly(p_dups, tooltip = "Cell") 
 ```
 
-Row
------------------------------------------------------------------------
-
-### GC normalized bin read count distribution
+### Bin read count hist
 
 ```{r}
 dat_bin %>% 
@@ -380,7 +391,7 @@ dat_bin %>%
   ylab("Frequency")
 ```
 
-### GC normalized bin read count distribution
+### Reads Hist
 
 ```{r}
 dat_stats %>% 
@@ -503,8 +514,8 @@ dat_seg_cp <- dat_seg %>% dplyr::select(-chrom, -chrompos)
 ratios_data$abspos <- chrom_info$abspos
 
 # ggplot will need the long format tables, using gather
-ratios_data_l_gat <- tidyr::gather(data = ratios_data %>% dplyr::select(1:30, abspos), key = "cell", value = "ratios_rat", -abspos)
-long_seg_t_gat <- tidyr::gather(data = dat_seg_cp %>% dplyr::select(1:30, abspos), key = "cell", value = "seg_mean", -abspos)
+ratios_data_l_gat <- tidyr::gather(data = ratios_data %>% dplyr::select(1:50, abspos), key = "cell", value = "ratios_rat", -abspos)
+long_seg_t_gat <- tidyr::gather(data = dat_seg_cp %>% dplyr::select(1:50, abspos), key = "cell", value = "seg_mean", -abspos)
 
 # I'll need to join both tables
 df <- inner_join(ratios_data_l_gat, long_seg_t_gat)
@@ -599,52 +610,107 @@ plots <- invisible(parallel::mclapply(seq_along(cell_names), function (x) {
 )
 ```
 
-Row {.tabset}
+Row {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
-### Cells 1-2
+### 1-2
 ```{r}
 cowplot::plot_grid(plotlist = plots[1:2], ncol = 1)
 ```
 
-### Cells 3-4
+### 3-4
 ```{r}
 cowplot::plot_grid(plotlist = plots[3:4], ncol = 1)
 ```
 
-### Cells 5-6
+### 5-6
 ```{r}
 cowplot::plot_grid(plotlist = plots[5:6], ncol = 1)
 ```
 
-### Cells 7-8
+### 7-8
 ```{r}
 cowplot::plot_grid(plotlist = plots[7:8], ncol = 1)
 ```
 
-### Cells 9-10
+### 9-10
 ```{r}
 cowplot::plot_grid(plotlist = plots[9:10], ncol = 1)
 ```
 
-### Cells 11-12
+### 11-12
 ```{r}
 cowplot::plot_grid(plotlist = plots[11:12], ncol = 1)
 ```
 
-### Cells 13-14
+### 13-14
 ```{r}
 cowplot::plot_grid(plotlist = plots[13:14], ncol = 1)
 ```
 
-### Cells 15-16
+### 15-16
 ```{r}
 cowplot::plot_grid(plotlist = plots[15:16], ncol = 1)
 ```
 
-### Cells 17-18
+### 17-18
 ```{r}
 cowplot::plot_grid(plotlist = plots[17:18], ncol = 1)
+```
+
+### 19-20
+```{r}
+cowplot::plot_grid(plotlist = plots[19:20], ncol = 1)
+```
+
+### 21-22
+```{r}
+cowplot::plot_grid(plotlist = plots[21:22], ncol = 1)
+```
+
+### 23-24
+```{r}
+cowplot::plot_grid(plotlist = plots[23:24], ncol = 1)
+```
+
+### 25-26
+```{r}
+cowplot::plot_grid(plotlist = plots[25:26], ncol = 1)
+```
+
+### 27-28
+```{r}
+cowplot::plot_grid(plotlist = plots[27:28], ncol = 1)
+```
+
+### 29-30
+```{r}
+cowplot::plot_grid(plotlist = plots[29:30], ncol = 1)
+```
+
+### 31-32
+```{r}
+cowplot::plot_grid(plotlist = plots[31:32], ncol = 1)
+```
+
+### 33-34
+```{r}
+cowplot::plot_grid(plotlist = plots[33:34], ncol = 1)
+```
+
+### 35-36
+```{r}
+cowplot::plot_grid(plotlist = plots[35:36], ncol = 1)
+```
+
+### 37-38
+```{r}
+cowplot::plot_grid(plotlist = plots[37:38], ncol = 1)
+```
+
+### 39-40
+```{r}
+cowplot::plot_grid(plotlist = plots[39:40], ncol = 1)
 ```
 
 Phylogenetics
@@ -673,7 +739,7 @@ ggtree(ladderize(tree),
   geom_tippoint(aes(color = group), size = .7) +
   scale_colour_manual(values = c("black", row_col)) +
   theme(legend.position = "right") +
-  labs(color = "SNN Cluster")
+  labs(color = "Cluster")
 ```
 
 About
