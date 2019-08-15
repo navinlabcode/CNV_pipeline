@@ -15,7 +15,7 @@ tryCatch(expr = { library(x,character.only = TRUE)},
 args <- commandArgs(trailingOnly = TRUE)
 
 Sys.setenv(RSTUDIO_PANDOC= "/usr/lib/rstudio-server/bin/pandoc")
-rmarkdown::render(paste(args[1], "/dashboard/cna_dashboard.Rmd", sep = ""),
+rmarkdown::render(paste(args[1], "/dashboard/cna_dashboard_facs.Rmd", sep = ""),
                   output_format = "flexdashboard::flex_dashboard",
                   output_file = paste(dir_ls(here(), 
                                              type = "directory",
@@ -25,5 +25,6 @@ rmarkdown::render(paste(args[1], "/dashboard/cna_dashboard.Rmd", sep = ""),
                                       sep = ""),
                   params = list(
                     directory = paste(args[1], "/bin", sep = ""),
-		    outdir = args[3]
+		    outdir = args[3],
+		    facs = args[4]
                   ))

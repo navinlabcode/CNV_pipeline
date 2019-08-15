@@ -15,7 +15,7 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 bin_directory <- args[1]
-output_dir <- args[2]
+output_dir <- paste0(args[2],"/final_result/ratio_plots/")
 
 print(output_dir)
 
@@ -34,15 +34,15 @@ package.check <- lapply(packages, FUN = function(x) {
 
 # reading ratio
 
-rat_data <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*ratio.txt")) %>% janitor::clean_names()
+rat_data <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob= "*uber*ratio.txt")) %>% janitor::clean_names()
 
 rat_data_cp <- rat_data %>% dplyr::select(-chrom, -chrompos, -abspos)
 
 # reading bin
-bin_data <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*bin.txt")) %>% janitor::clean_names()
+bin_data <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob= "*uber*bin.txt")) %>% janitor::clean_names()
 
 # reading seg
-seg_data <- readr::read_tsv(fs::dir_ls(path = here(), recursive = T, glob= "*uber*seg.txt")) %>% janitor::clean_names()
+seg_data <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob= "*uber*seg.txt")) %>% janitor::clean_names()
 
 seg_data_cp <- seg_data %>% dplyr::select(-chrom, -chrompos, -abspos)
 
@@ -261,7 +261,7 @@ invisible(parallel::mclapply(seq_along(cell_names), function (x) {
                        name = "Ratios") +
     scale_color_identity()
   
-  cowplot::ggsave(paste(output_dir, cell_names[x], ".png", sep = ""), plot = p, device = "png", width = 10, height = 5)
+  ggsave(paste(output_dir, cell_names[x], ".png", sep = ""), plot = p, device = "png", width = 10, height = 5)
   
 }
 , mc.cores = ncpu)

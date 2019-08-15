@@ -38,6 +38,7 @@ arguments:
 	-c|--cpu: [ 30(default) ]
 	-u|--undo_prune: [ 0.05(default) ]
 	-a|--alpha: [ 0.0001(default) ]
+	-p|--facs: [ facs path ]
 	-e|--filter_CellWithEmptyBin: [ 0.1(default) ]
 	-m|--makeFig: [ TRUE(default) NO]
 Example:
@@ -48,7 +49,7 @@ or
 
 if [[ $# -lt 3 ]] ; then echo "$help" ; exit 1 ; fi
 
-TEMP=`getopt -o f:o:s:r:c:u:a:e:m: --long fastq:,output:,sample:,res:,cpu:,undo_prune:,alpha:,filter_CellWithEmptyBin:,makeFig: \
+TEMP=`getopt -o f:o:s:r:c:u:a:e:m:p: --long fastq:,output:,sample:,res:,cpu:,undo_prune:,alpha:,filter_CellWithEmptyBin:,facs:,makeFig: \
         -n 'example.bash' -- "$@"`
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 eval set -- "$TEMP"
@@ -68,6 +69,8 @@ while true ; do
              	undo_prune=$2 ; shift 2 ;;
         -a|--alpha)
                 alpha=$2 ; shift 2 ;;
+        -p|--facs)
+                facs=$2 ; shift 2 ;;
         -e|--filter_CellWithEmptyBin)
                 filter_CellWithEmptyBin=$2 ; shift 2 ;;
 	-m|--makeFig)
@@ -209,14 +212,18 @@ heatmap(){
 }
 
 dashboard(){
-
-	Rscript $bin/render_dashboard.R "$root_dir" "$sample"
+	if [[ -e $facs ]]
+	then
+	Rscript $bin/render_dashboard_facs.R "$root_dir" "$sample" "$output" "$facs"
+	else
+	Rscript $bin/render_dashboard.R "$root_dir" "$sample" "$output"
+	fi
 
 }
 
 ratio_plots(){
   
-        Rscript $bin/ratio_plots.R "$bin" "$output/final_result/ratio_plots/"
+        Rscript $bin/ratio_plots.R "$bin" "$output"
   
 }
 
