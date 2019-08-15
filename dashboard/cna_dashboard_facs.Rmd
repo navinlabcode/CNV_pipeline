@@ -206,7 +206,7 @@ cl$cluster %>% unique() %>% length() %>%
 Column
 -----------------------------------------------------------------------
 
-### Heatmap {data-width=600}
+### Heatmap 
 
 ```{r making_heatmap}
 # chromosome annotation top bar
