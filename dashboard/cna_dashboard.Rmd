@@ -25,7 +25,7 @@ packages <- c("tidyverse", "fs", "shiny",
               "here", "flexdashboard", "cowplot",
               "janitor", "ape", "ggsci", "plotly",
               "amap", "paletteer", "scales", "umap","uwot",
-              "flsa", "BiocManager", "DT", "devtools")
+              "flsa", "BiocManager", "DT", "devtools", "Metrics")
 
 package.check <- lapply(packages, FUN = function(x) {
   if (!require(x, character.only = TRUE)) {
@@ -195,7 +195,7 @@ Column
 
 ### Heatmap 
 
-```{r making_heatmap}
+```{r making_heatmap, fig.height=9}
 # chromosome annotation top bar
 # getting the vector of chrom lengths
 chr_lengths <- dat_seg %>% 
@@ -307,6 +307,70 @@ QC
 
 Row {.tabset .tabset-fade data-width=400}
 -----------------------------------------------------------------------
+
+### Quality
+```{r rmse-qc}
+message("Calculating RMSE")
+
+rmses <- vector()
+
+for (i in 4:ncol(dat_seg)) {
+  actual <- dat_seg[, i] %>% pull()
+  predicted <- dat_rat[, i] %>% pull()
+
+  rmses[i] <- rmse(actual, predicted)
+  names(rmses)[i] <- names(dat_seg[, i]) 
+}
+
+rmses_df <- enframe(rmses,
+  name = "sample_name",
+  value = "rmse"
+)
+
+# cv
+message("Calculating CV")
+cv <- vector()
+
+for(i in 4:ncol(dat_seg)) {
+  seg_n_probes <- rle(pull(dat_seg[,i]))$lengths
+  ratio_split <- split(pull(dat_rat[,i]), 
+                       as.factor(rep.int(1:length(seg_n_probes), seg_n_probes)))
+  cv[i] <- lapply(ratio_split, function(x) sd(x)/mean(x)) %>% unlist() %>% sum()
+  names(cv)[i] <- names(dat_seg[,i])
+}
+
+cv_df <- enframe(cv,
+                      name = "sample_name",
+                      value = "cv"
+)
+
+cv_rmse_df <- inner_join(rmses_df, cv_df)
+
+p <- cv_rmse_df %>% 
+  ggplot(aes(rmse, cv)) +
+  geom_point(aes(label = sample_name)) +
+  geom_smooth(method = "lm") +
+  scale_color_viridis_d() +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))
+
+ggplotly(p)
+```
+
+### ReadsKeptxRMSE
+```{r}
+p2 <- inner_join(dat_stats, cv_rmse_df) %>% 
+  ggplot(aes(reads_kept, rmse, color = duplicates)) + 
+  geom_point() +
+  geom_smooth() +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + 
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) + 
+  scale_color_viridis_c(option = "inferno") +
+  theme(axis.text.x = element_text(angle = 90)) 
+
+ggplotly(p2)
+```
+
 
 ### Reads Kept
 
@@ -422,7 +486,7 @@ Row
 
 ### Reads information
 
-```{r}
+```{r reads_info_dt}
 dt_dat_stats <- dat_stats %>% 
   arrange(desc(reads_kept)) %>% 
   mutate(duplicates = scales::percent(round(duplicates,2)))
@@ -432,7 +496,7 @@ DT::datatable(dt_dat_stats, options = list(pageLength = 50))
 
 Example Profiles
 =======================================================================
-```{r}
+```{r making_ratio_plots}
 ### making the plots 
 
 packages <- c("tidyverse", "here", "parallel", "fs", "janitor", "pals")
@@ -713,6 +777,26 @@ cowplot::plot_grid(plotlist = plots[37:38], ncol = 1)
 ### 39-40
 ```{r}
 cowplot::plot_grid(plotlist = plots[39:40], ncol = 1)
+```
+
+### 41-42
+```{r}
+cowplot::plot_grid(plotlist = plots[41:42], ncol = 1)
+```
+
+### 43-44
+```{r}
+cowplot::plot_grid(plotlist = plots[43:44], ncol = 1)
+```
+
+### 45-46
+```{r}
+cowplot::plot_grid(plotlist = plots[45:46], ncol = 1)
+```
+
+### 47-48
+```{r}
+cowplot::plot_grid(plotlist = plots[47:48], ncol = 1)
 ```
 
 Phylogenetics
