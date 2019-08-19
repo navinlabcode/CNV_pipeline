@@ -309,7 +309,7 @@ Row {.tabset .tabset-fade data-width=400}
 -----------------------------------------------------------------------
 
 ### Quality
-```{r rmse-qc}
+```{r}
 message("Calculating RMSE")
 
 rmses <- vector()
@@ -347,64 +347,38 @@ cv_df <- enframe(cv,
 cv_rmse_df <- inner_join(rmses_df, cv_df)
 
 p <- cv_rmse_df %>% 
-  ggplot(aes(rmse, cv)) +
+  ggplot(aes(cv, rmse)) +
   geom_point(aes(label = sample_name)) +
   geom_smooth(method = "lm") +
   scale_color_viridis_d() +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  xlab("Coefficient of Variation") + 
+  ylab("RMSE")
 
-ggplotly(p)
-```
+p <- ggplotly(p)
 
-### ReadsKeptxRMSE
-```{r}
-p2 <- inner_join(dat_stats, cv_rmse_df) %>% 
-  ggplot(aes(reads_kept, rmse, color = duplicates)) + 
+p_rmse <- inner_join(dat_stats, cv_rmse_df) %>% 
+  ggplot(aes(reads_kept, rmse)) + 
   geom_point() +
   geom_smooth() +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + 
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) + 
   scale_color_viridis_c(option = "inferno") +
-  theme(axis.text.x = element_text(angle = 90)) 
+  theme(axis.text.x = element_text(angle = 90)) +
+  ylab("RMSE")
+  
 
-ggplotly(p2)
+p_rmse <- ggplotly(p_rmse)
+
+subplot(p,p_rmse,
+        nrows = 2,
+        titleX = TRUE,
+        titleY = TRUE)
+
 ```
 
-
-### Reads Kept
-
-```{r}
-# creates a index for x and y so I have a square matrix, also creates a lable for plotly
-p <- dat_stats %>% 
-  mutate(idx_x = rep(1:sqrt(nrow(dat_stats)), length.out = nrow(dat_stats), each = sqrt(nrow(dat_stats)))) %>%
-  mutate(idx_y = rep(paste(1:sqrt(nrow(dat_stats)),"a", sep = ""), length.out = nrow(dat_stats)))  %>% 
-  dplyr::mutate(Cell = paste(sample_name,
-                              "- Reads Kept: ",
-                             reads_kept,
-                             sep = "")) %>% 
-  ggplot() + 
-  geom_tile(aes(x = idx_x, 
-                y = idx_y, 
-                fill = reads_kept,
-                label = Cell)) +
-  coord_equal() + 
-  scale_fill_viridis_c(option = "magma",
-                       labels = scales::comma) +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.line = element_blank(),
-        axis.ticks = element_blank()) +
-  ylab("") +
-  xlab("") 
-
-
-# ggplotly
-p
-# ggplotly(p, tooltip = "Cell")
-```
-
-### Duplicates percentage
+### Duplicates 
 
 ```{r}
 # creates a index for x and y so I have a square matrix, also creates a lable for plotly
@@ -439,7 +413,7 @@ p_dups
 # ggplotly(p_dups, tooltip = "Cell") 
 ```
 
-### Bin read count hist
+### Bin count
 
 ```{r}
 dat_bin %>% 
@@ -457,7 +431,7 @@ dat_bin %>%
   ylab("Frequency")
 ```
 
-### Reads Hist
+### Reads
 
 ```{r}
 dat_stats %>% 
@@ -486,7 +460,7 @@ Row
 
 ### Reads information
 
-```{r reads_info_dt}
+```{r}
 dt_dat_stats <- dat_stats %>% 
   arrange(desc(reads_kept)) %>% 
   mutate(duplicates = scales::percent(round(duplicates,2)))
