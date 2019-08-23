@@ -8,13 +8,13 @@
 
 main(){
 	create_folder
-#	run_bowtie_varbin
-#	read_align_stat
-#	filter
-#	segmentation
-#	heatmap
+	run_bowtie_varbin
+	read_align_stat
+	filter
+	segmentation
+	heatmap
 	dashboard
-#	ratio_plots
+	ratio_plots
 	clean
      }
 
@@ -90,8 +90,8 @@ done
 [ -z "$filter_CellWithEmptyBin" ] && filter_CellWithEmptyBin="0.1"
 
 create_folder(){
-  root_dir=`dirname $0`
-  dashboard=`dirname $0`/dashboard
+  	root_dir=`dirname $0`
+  	dashboard=`dirname $0`/dashboard
 	bin=`dirname $0`/bin
 	lib=`dirname $0`/lib
 	sam_folder="$output/sam"
