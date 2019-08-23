@@ -92,14 +92,24 @@ foreach $file (@files)
 {
 	my $fname=basename($file);
 #$fname =~ /^(.*?)\_(.*?)\_(.*?)\_(.*?)\_(.*?)\.fastq/;
+	my $fq1=$file;
+	my $fq2=$file;
+	$fq2=~s/\_R1\_/\_R2\_/;
+	if(-e $fq2){
+	$fname =~ /^(.*?)\_R\d_001/;
+	$pre=$1;  
+	}else{
 	$fname =~ /^(.*?)\.fastq/;
 	$pre=$1;
+	}
 	$samName=$samdir."/".$pre.".sam";
 
-
 #get sam file
+	if(-e $fq2){
+	$cmd_sam="$bowtie -x $bowtie_hg19/hg19 -1 $fq1 -2 $fq2 -S $samName -p 6 "; 
+	}else{
 	$cmd_sam="gzip -dc $file |$bowtie -x $bowtie_hg19/hg19 - -S $samName -p 6 ";
-
+	}
 #from sam to bam
 	$bamName=$bamdir."/".$pre.".bam";
 	$cmd_bam="$samtools view -bS -q 1 $samName > $bamName";
@@ -112,11 +122,11 @@ foreach $file (@files)
 	$sortName=$sortdir_sub."/".$pre.".sorted";
 	$cmd_sort="$samtools sort  $bamName $sortName";
 #$sortName2="$sortName.bam";
-#	print STDOUT "$cmd_sam\n";
+	print STDOUT "$cmd_sam\n";
 	system("$cmd_sam");
-#	print STDOUT "$cmd_bam\n";
+	print STDOUT "$cmd_bam\n";
 	system("$cmd_bam");
-#	print STDOUT "$cmd_sort\n";
+	print STDOUT "$cmd_sort\n";
 	system("$cmd_sort");
 }
 
@@ -149,7 +159,7 @@ $cmd="$samtools view $sortdir/$sub_pre.sort.bam >$sortdir/$sub_pre.sort.sam";
 system("$cmd");
 #Creates varbins files
 $cmd="$varbin_python $sortdir/$sub_pre.sort.sam $vb_dir\/$sub_pre\.vb $stat_dir\/$sub_pre\.stat\.txt $chrominfo $bins";
-print "$cmd\n";
+print STDOUT "$cmd\n";
 system("$cmd");
 
 

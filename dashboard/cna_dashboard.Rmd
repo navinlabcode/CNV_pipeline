@@ -6,9 +6,9 @@ output:
     theme: default
     logo: navin_lab_logo.png
 params:
-  directory:
+  directory: 
     value: x
-  outdir: x
+  outdir: y
 editor_options: 
   chunk_output_type: console
 ---
@@ -70,9 +70,10 @@ dat_stats <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir),
 
 # correcting names
 dat_stats$sample_name <- make_clean_names(dat_stats$sample_name)
-
+Raw_dat_stats<-dat_stats
 dat_stats <- dat_stats %>%
   dplyr::filter(sample_name %in% names(dat_seg))
+dat_stats_rm<-Raw_dat_stats %>% dplyr::filter(!sample_name %in% names(dat_seg))
 
 # dat_stats metrics
 dat_stats_metrics <- dat_stats %>% 
@@ -147,7 +148,15 @@ Summary
 Column {data-width=200}
 -----------------------------------------------------------------------
 
-### Cells {.colored}
+### Cells Sequenced {.colored}
+
+```{r}
+ Raw_dat_stats%>% 
+  nrow() %>% 
+  valueBox(icon = "circle")
+```
+
+### Cells Analysed {.colored}
 
 ```{r}
 dat_seg %>% 
@@ -455,7 +464,7 @@ dat_stats %>%
   ylab("Frequency")
 ```
 
-Row
+Row {.tabset .tabset-fade .tabset-pills}
 -----------------------------------------------------------------------
 
 ### Reads information
@@ -466,6 +475,15 @@ dt_dat_stats <- dat_stats %>%
   mutate(duplicates = scales::percent(round(duplicates,2)))
 
 DT::datatable(dt_dat_stats, options = list(pageLength = 50))
+```
+
+### Removed cells information
+```{r}
+dt_dat_stats_rm <- dat_stats_rm %>% 
+  arrange(desc(reads_kept)) %>% 
+  mutate(duplicates = scales::percent(round(duplicates,2)))
+
+DT::datatable(dt_dat_stats_rm, options = list(pageLength = 50))
 ```
 
 Example Profiles
@@ -554,8 +572,8 @@ dat_seg_cp <- dat_seg %>% dplyr::select(-chrom, -chrompos)
 ratios_data$abspos <- chrom_info$abspos
 
 # ggplot will need the long format tables, using gather
-ratios_data_l_gat <- tidyr::gather(data = ratios_data %>% dplyr::select(1:50, abspos), key = "cell", value = "ratios_rat", -abspos)
-long_seg_t_gat <- tidyr::gather(data = dat_seg_cp %>% dplyr::select(1:50, abspos), key = "cell", value = "seg_mean", -abspos)
+ratios_data_l_gat <- tidyr::gather(data = ratios_data %>% dplyr::select(1:ncol(bin_data_cp), abspos), key = "cell", value = "ratios_rat", -abspos)
+long_seg_t_gat <- tidyr::gather(data = dat_seg_cp %>% dplyr::select(1:ncol(bin_data_cp), abspos), key = "cell", value = "seg_mean", -abspos)
 
 # I'll need to join both tables
 df <- inner_join(ratios_data_l_gat, long_seg_t_gat)
