@@ -70,10 +70,14 @@ dat_stats <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir),
 
 # correcting names
 dat_stats$sample_name <- make_clean_names(dat_stats$sample_name)
-Raw_dat_stats<-dat_stats
+
+raw_dat_stats <- dat_stats
+
 dat_stats <- dat_stats %>%
   dplyr::filter(sample_name %in% names(dat_seg))
-dat_stats_rm<-Raw_dat_stats %>% dplyr::filter(!sample_name %in% names(dat_seg))
+
+dat_stats_rm <- raw_dat_stats %>% 
+  dplyr::filter(!sample_name %in% names(dat_seg))
 
 # dat_stats metrics
 dat_stats_metrics <- dat_stats %>% 
@@ -151,18 +155,33 @@ Column {data-width=200}
 ### Cells Sequenced {.colored}
 
 ```{r}
- Raw_dat_stats%>% 
+ raw_dat_stats %>% 
   nrow() %>% 
-  valueBox(icon = "circle")
+  valueBox(icon = "circle",
+           color = "#000000")
 ```
 
-### Cells Analysed {.colored}
+### Cells removed
+```{r}
+total <- raw_dat_stats %>% nrow() 
+kept_number <- dat_seg %>% dplyr::select(-chrom, -chrompos, -abspos) %>% 
+  ncol() 
+
+rm = total - kept_number
+
+valueBox(rm, 
+         color = "#ff0000",
+         caption = "Insufficient reads")
+```
+
+### Cells passed QC {.colored}
 
 ```{r}
 dat_seg %>% 
   dplyr::select(-chrom, -chrompos, -abspos) %>% 
   ncol() %>% 
-  valueBox(icon = "circle")
+  valueBox(icon = "circle",
+           color = "#008000")
 ```
 
 ### Total Reads (Median) {.colored}
