@@ -122,37 +122,15 @@ run_bowtie_varbin(){
 	do
 	r1_input=${line}
 	r2_input=`ls $r1_input|sed -e 's/_R1_/_R2_/g'`
-	l1_input=`ls $r1_input|sed -e 's/L00[0-9]/L001/g'`
-	l2_input=`ls $r1_input|sed -e 's/L00[0-9]/L002/g'`
-	l3_input=`ls $r1_input|sed -e 's/L00[0-9]/L003/g'`
-	l4_input=`ls $r1_input|sed -e 's/L00[0-9]/L004/g'`
-	nu=0
-	for fq in $l1_input $l2_input $l3_input $l4_input
-	do
-	if [[ -f $fq ]];then nu=$((nu+1));fi
-	done
-
-	if [[ $nu == 1 ]]
-	then
-		if [ ! -f $r2_input ] || [ $r1_input = $r2_input ]
-		then
-		r2_input="";
-		fi
-		echo "perl $bin/run_bowtie2_varbin.pl -fq1 $r1_input -fq2 $r2_input -samdir $sam_folder -bamdir $bam_folder -sortdir $sort_folder -vb_dir $vbdir_folder -stat_dir $stat_folder -res $res" >> $s1_tmp
-	else
 	s1_dir=`dirname $r1_input`
-	echo "perl $bin/run_bowtie2_varbin_nextseq.pl -fqdir $s1_dir -samdir $sam_folder -bamdir $bam_folder -sortdir $sort_folder -vb_dir $vbdir_folder -stat_dir $stat_folder -res $res " >> $s1_tmp
-
-	fi
-
-	done
+	echo "perl $bin/run_bowtie2_varbin.pl -fqdir $s1_dir -samdir $sam_folder -bamdir $bam_folder -sortdir $sort_folder -vb_dir $vbdir_folder -stat_dir $stat_folder -res $res " >> $s1_tmp
 	sort $s1_tmp |uniq > $s2_tmp
 	gnu_parallel=$(grep "parallel" $lib/CNA.config | cut -d "=" -f 2)
 	cpu="$(expr $cpu / 6)"
 	$gnu_parallel -j $cpu < $s2_tmp
 	rm -f $output/bowtie-*
-	rm -f $s1_tmp
-	rm -f $s2_tmp
+#	rm -f $s1_tmp
+#	rm -f $s2_tmp
 	time=`date`
 	echo "$time step1 run_bowtie & varbin  is done"
 }

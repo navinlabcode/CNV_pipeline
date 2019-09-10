@@ -66,10 +66,18 @@ dat_seg <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), r
 dat_seg_cp <- dat_seg %>% dplyr::select(-chrom, -chrompos, -abspos)
 
 dat_bin <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob= "*uber*bin.txt")) %>% janitor::clean_names()
+
 dat_stats <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, regex= "all_stat_metrics.txt")) %>% 
   janitor::clean_names() %>% 
   mutate(duplicates = dups_removed/total_reads)
-Raw_dat_stats<-readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, regex= "all_stat_metrics.txt"))
+
+# correcting names
+dat_stats$sample_name <- make_clean_names(dat_stats$sample_name)
+Raw_dat_stats<-dat_stats
+dat_stats <- dat_stats %>%
+  dplyr::filter(sample_name %in% names(dat_seg))
+dat_stats_rm<-Raw_dat_stats %>% dplyr::filter(!sample_name %in% names(dat_seg))
+
 
 # correcting names
 dat_stats$sample_name <- make_clean_names(dat_stats$sample_name)
@@ -287,7 +295,7 @@ table_facs<-facs.density(params$facs)
 names(table_facs)<-c("DAPI fluorescence","Density","is_peak","peak_rank")
 #ggplot(table_facs)+geom_line(aes(x=`DAPI fluorescence`, y=density ))
 facs_peaks <- table_facs[table_facs$is_peak,]
-infered_ploidy<-2 * facs_peaks[facs_peaks$peak_rank==2,]$`DAPI fluorescence` / facs_peaks[facs_peaks$peak_rank==1,]$`DAPI fluorescence`
+infered_ploidy<-2 * facs_peaks[facs_peaks$peak_rank==3,]$`DAPI fluorescence` / facs_peaks[facs_peaks$peak_rank==2,]$`DAPI fluorescence`
 graph <- ggplot(table_facs, aes(x = `DAPI fluorescence`, y = Density)) +
   geom_line(color='steelblue') +
   ggtitle(paste0("FACS Ploidy=",round(infered_ploidy,2))) +
@@ -415,7 +423,7 @@ dat_stats %>%
   ylab("Frequency")
 ```
 
-Row
+Row {.tabset .tabset-fade .tabset-pills}
 -----------------------------------------------------------------------
 
 ### Reads information
@@ -428,6 +436,14 @@ dt_dat_stats <- dat_stats %>%
 DT::datatable(dt_dat_stats, options = list(pageLength = 50))
 ```
 
+### Removed cells information
+```{r}
+dt_dat_stats_rm <- dat_stats_rm %>% 
+  arrange(desc(reads_kept)) %>% 
+  mutate(duplicates = scales::percent(round(duplicates,2)))
+
+DT::datatable(dt_dat_stats_rm, options = list(pageLength = 50))
+```
 
 Phylogenetics
 =======================================================================

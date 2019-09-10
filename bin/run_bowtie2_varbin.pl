@@ -31,8 +31,7 @@ my ($Verbose,$Help,$fqdir,$outdir,$bedfile);
 GetOptions(
 		"verbose"=>\$Verbose,
 		"help"=>\$Help,
-		"fq1:s"=>\$fq1,
-		"fq2:s"=>\$fq2,
+		"fqdir:s"=>\$fqdir,
 		"samdir:s"=>\$samdir,
 		"bamdir:s"=>\$bamdir,
 		"sortdir:s"=>\$sortdir,
@@ -40,14 +39,19 @@ GetOptions(
 		"stat_dir:s"=>\$stat_dir,
 		"res:s"=>\$res
 	  );
-die `pod2text $0` if ($Help || !$fq1 || !$bamdir || !$samdir);
+die `pod2text $0` if ($Help || !$fqdir || !$bamdir || !$samdir);
 
 
 my $bin=dirname($0);
 my $support=dirname($bin);
 my $config="$support\/lib\/CNA.config";
+#print "$config\n";
+@files=glob("$fqdir/*_R1*.fastq $fqdir/*_R1*.fastq.gz");
+
 
 my $i=0;
+my $pre="";
+my $sub_pre="";
 
 my $bowtie=find_path("$config","bowtie");
 my $samtools=find_path("$config","samtools");
@@ -55,8 +59,9 @@ my $bowtie_hg19=find_path("$config","bowtie_hg19");
 my $varbin_python=find_path("$config","varbin_python");
 $varbin_python=$bin."/".`basename $varbin_python`;
 chomp $varbin_python;
+my $chrominfo=find_path("$config","chrominfo"); 
+my $sortdir_sub;
 
-my $chrominfo=find_path("$config","chrominfo");
 my $bins;
 if ($res =~/^200$/){
 	$bins=find_path("$config","bins_200k");
@@ -78,56 +83,83 @@ if ($res =~/^200$/){
 	$bins=find_path("$config","bins_10M");
 }
 
-$bins=$support."/lib/".`basename $bins`;
+$bins=$support."/lib/".`basename $bins`; 
 chomp $bins;
 $chrominfo=$support."/lib/".`basename $chrominfo`;
-chomp $chrominfo;
+chomp $chrominfo; 
 
-
-my $sortName2;my $sortName;
-
-
-
-my $fname=basename($fq1);
+foreach $file (@files)
+{
+	my $fname=basename($file);
 #$fname =~ /^(.*?)\_(.*?)\_(.*?)\_(.*?)\_(.*?)\.fastq/;
-my $pre;
-if($fq2){
-	$fname =~ /^(.*?)\_R\d_001/;        #MR1-MDAMB231-C100_S484_L002_R1_001.fastq.gz
-		$pre=$1;
-}else{
-	$fname=~/^(.*?)\.fastq/;
+	my $fq1=$file;
+	my $fq2=$file;
+	$fq2=~s/\_R1\_/\_R2\_/;
+	if(-e $fq2){
+	$fname =~ /^(.*?)\_R\d_001/;
+	$pre=$1;  
+	}else{
+	$fname =~ /^(.*?)\.fastq/;
 	$pre=$1;
-}
-$pre=~s/\_L00\d//g;
-$samName=$samdir."/".$pre.".sam";
+	}
+	$samName=$samdir."/".$pre.".sam";
 
 #get sam file
-my $cmd_sam;
-if($fq2){
-	$cmd_sam="$bowtie -x $bowtie_hg19/hg19 -1 $fq1 -2 $fq2 -S $samName -p 6 ";
-}else{
-	$cmd_sam="gzip -dc $fq1 |$bowtie -x $bowtie_hg19/hg19 - -S $samName -p 6 ";
+	if(-e $fq2){
+	$cmd_sam="$bowtie -x $bowtie_hg19/hg19 -1 $fq1 -2 $fq2 -S $samName -p 6 "; 
+	}else{
+	$cmd_sam="gzip -dc $file |$bowtie -x $bowtie_hg19/hg19 - -S $samName -p 6 ";
+	}
+#from sam to bam
+	$bamName=$bamdir."/".$pre.".bam";
+	$cmd_bam="$samtools view -bS -q 1 $samName > $bamName";
+
+#sort bam
+	$sub_pre=$pre;
+	$sub_pre=~s/\_L00\d//g;
+	$sortdir_sub=$sortdir."/".$sub_pre;
+	`mkdir -p $sortdir_sub`;
+	$sortName=$sortdir_sub."/".$pre.".sorted";
+	$cmd_sort="$samtools sort  $bamName $sortName";
+#$sortName2="$sortName.bam";
+	print STDOUT "$cmd_sam\n";
+	system("$cmd_sam");
+	print STDOUT "$cmd_bam\n";
+	system("$cmd_bam");
+	print STDOUT "$cmd_sort\n";
+	system("$cmd_sort");
 }
 
-#from sam to bam
-$bamName=$bamdir."/".$pre.".bam";
-$cmd_bam="$samtools view -bS -q 1 $samName > $bamName";
 
-$sortName=$sortdir."/".$pre.".sort";
-$cmd_sort="$samtools sort  $bamName $sortName";
-$sortName2="$sortName.bam";
-system("$cmd_sam");
-system("$cmd_bam");
-system("$cmd_sort");
+@files=glob("$sortdir_sub/*.sorted.bam");
 
+$size=@files;
+if($size>1 )
+{
+	$cmd="$samtools merge $sortdir/$sub_pre.sort.bam ";
 
+	foreach $file (@files)
+	{
+		$cmd=$cmd." ".$file;
+	}
+
+	print STDOUT "$cmd\n";
+	print STDOUT "more than one lane in this sample $cmd\n";
+	system("$cmd");
+
+}
+elsif($size == 1 )
+{
+	$cmd="mv $files[0] $sortdir/$sub_pre.sort.bam ";
+	print STDOUT "$cmd\n";
+	system("$cmd");
+}
 #Converts sorted Bam file to a sorted Sam file using Samtools 
-$cmd="$samtools view $sortName2 > $sortName.sam";
+$cmd="$samtools view $sortdir/$sub_pre.sort.bam >$sortdir/$sub_pre.sort.sam";
 system("$cmd");
-
 #Creates varbins files
-$cmd="$varbin_python $sortName\.sam $vb_dir\/$pre\.vb $stat_dir\/$pre\.stat\.txt $chrominfo $bins";
-print "$cmd\n";
+$cmd="$varbin_python $sortdir/$sub_pre.sort.sam $vb_dir\/$sub_pre\.vb $stat_dir\/$sub_pre\.stat\.txt $chrominfo $bins";
+print STDOUT "$cmd\n";
 system("$cmd");
 
 

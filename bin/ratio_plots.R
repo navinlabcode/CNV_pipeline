@@ -15,8 +15,8 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 bin_directory <- args[1]
+output_dir_CN <- paste0(args[2],"/final_result/ratio_plots_CN/")
 output_dir <- paste0(args[2],"/final_result/ratio_plots/")
-
 print(output_dir)
 
 ncpu = 40
@@ -31,6 +31,7 @@ package.check <- lapply(packages, FUN = function(x) {
   }
 })
 
+dir_create(output_dir_CN)
 
 # reading ratio
 
@@ -57,7 +58,7 @@ dat_ploidy <- Reduce(rbind,
   as_tibble() %>% 
   readr::type_convert() %>% 
   dplyr::rename(sample_name_original = V1) %>% 
-  dplyr::mutate(cell = str_extract(sample_name_original, "^[^_]*")) %>% 
+  dplyr::mutate(cell = sample_name_original) %>% 
   dplyr::mutate(label = paste(cell, 
                               ": ", 
                               ploidy,
@@ -127,13 +128,14 @@ seg_data <- seg_data %>% dplyr::select(-chrom, -chrompos)
 
 # adding chromosomes info back
 ratios_data$abspos <- chrom_info$abspos
-
+bin_data$abspos <- chrom_info$abspos
 # ggplot will need the long format tables, using gather
 ratios_data_l_gat <- tidyr::gather(data = ratios_data, key = "cell", value = "ratios_rat", -abspos)
 long_seg_t_gat <- tidyr::gather(data = seg_data, key = "cell", value = "seg_mean", -abspos)
-
+bin_data_l_gat<-tidyr::gather(data = bin_data, key = "cell", value = "bin_count", -abspos) %>% as.tibble()
 # I'll need to join both tables
 df <- inner_join(ratios_data_l_gat, long_seg_t_gat)
+df<- inner_join(df, bin_data_l_gat)
 # ploidy scaling the seg values
 df <- df %>% dplyr::mutate(int_value = round(ploidy_median*seg_mean))
 
@@ -194,7 +196,7 @@ if (round(ploidy_median) == 2 ) {
 
 # saving the names of the cells so I can iterate later
 cell_names <- df$cell %>% unique()
-
+cv <- function(n) sd(n) / mean(n)
 #chromosomes squares background
 ggchr.back <-
   list(geom_rect(
@@ -222,7 +224,7 @@ ggaes <- list(
   theme(
     axis.text.x = element_text(angle = 0,
                                vjust = .5,
-                               size = 15),
+                               size = 7),
     axis.text.y = element_text(size = 15),
     axis.title.y.right = element_text(margin = margin(l = 10)),
     legend.position = "none",
@@ -261,11 +263,37 @@ invisible(parallel::mclapply(seq_along(cell_names), function (x) {
                        name = "Ratios") +
     scale_color_identity()
   
-  ggsave(paste(output_dir, cell_names[x], ".png", sep = ""), plot = p, device = "png", width = 10, height = 5)
+  ggsave(paste(output_dir_CN, cell_names[x], ".png", sep = ""), plot = p, device = "png", width = 10, height = 5)
   
 }
 , mc.cores = ncpu)
 )
 
 
+invisible(parallel::mclapply(seq_along(cell_names), function (x) {
+  
+  sc_df<-df %>% dplyr::filter(cell == cell_names[x]) 
+  
+  p <- ggplot(sc_df %>% dplyr::mutate(label=ifelse(round(seg_mean) >= 2, ">=2", as.character(round(seg_mean))))) +
+    geom_point(aes(abspos, ratios_rat, color = label),
+               shape = 20,
+               size = 2,
+               alpha = .7) +
+    geom_line(aes(abspos, seg_mean), col = "black",
+              size = 1.5) +
+    ggchr.back +
+    ggaes +
+    xlab("") +
+    ylab("ratios") +
+    ggtitle(paste(toupper(sc_df$cell[1]),
+                  "\n",
+                  "Average Read Counts Each Bin: ",
+                  round(mean(sc_df$bin_count),2), "   CV: ",round(cv(sc_df$bin_count),2),sep = ""))+
+    scale_colour_manual(name = 'Segmenatation value', 
+                        values =c(`0`='skyblue2',`1`='azure4',`>=2`='firebrick3'))
 
+  ggsave(paste(output_dir, cell_names[x], ".png", sep = ""), plot = p, device = "png", width = 10, height = 5)
+  
+}
+, mc.cores = ncpu)
+)
