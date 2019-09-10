@@ -170,8 +170,7 @@ kept_number <- dat_seg %>% dplyr::select(-chrom, -chrompos, -abspos) %>%
 rm = total - kept_number
 
 valueBox(rm, 
-         color = "#ff0000",
-         caption = "Insufficient reads")
+         color = "#ff0000")
 ```
 
 ### Cells passed QC {.colored}
