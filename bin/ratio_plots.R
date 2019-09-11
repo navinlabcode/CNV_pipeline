@@ -227,6 +227,7 @@ ggaes <- list(
                                size = 7),
     axis.text.y = element_text(size = 15),
     axis.title.y.right = element_text(margin = margin(l = 10)),
+    panel.border = element_rect(linetype = "solid", fill = NA,size=1),
     legend.position = "none",
     axis.ticks.x = element_blank(),
     axis.title = element_text(size = 18),

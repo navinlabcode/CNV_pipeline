@@ -124,13 +124,13 @@ run_bowtie_varbin(){
 	r2_input=`ls $r1_input|sed -e 's/_R1_/_R2_/g'`
 	s1_dir=`dirname $r1_input`
 	echo "perl $bin/run_bowtie2_varbin.pl -fqdir $s1_dir -samdir $sam_folder -bamdir $bam_folder -sortdir $sort_folder -vb_dir $vbdir_folder -stat_dir $stat_folder -res $res " >> $s1_tmp
+	done
 	sort $s1_tmp |uniq > $s2_tmp
 	gnu_parallel=$(grep "parallel" $lib/CNA.config | cut -d "=" -f 2)
 	cpu="$(expr $cpu / 6)"
 	$gnu_parallel -j $cpu < $s2_tmp
-	rm -f $output/bowtie-*
-#	rm -f $s1_tmp
-#	rm -f $s2_tmp
+	rm -f $s1_tmp
+	rm -f $s2_tmp
 	time=`date`
 	echo "$time step1 run_bowtie & varbin  is done"
 }
