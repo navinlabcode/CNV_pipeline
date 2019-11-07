@@ -52,8 +52,14 @@ if(!file.exists(filterFile))
 print(vb_folder)	
 print (varbinPattern)
 #varbinPattern <- ".vb"
-testFile <- list.files(vb_folder, pattern=varbinPattern, full.names=TRUE)[1]
+file_all <- list.files(vb_folder, pattern=varbinPattern, full.names=TRUE)
+
+sizes<-file.info(file_all)$size
+
+testFile<-file_all[which(sizes != 0)][1]
 print(testFile)
+
+
 if(!file.exists(testFile))
 	stop("The varbin directory shows no existing files with the extension you specified.")
 if(!file.exists(gcInputFile))
@@ -61,7 +67,7 @@ if(!file.exists(gcInputFile))
 
 #read in the files
 filter <- read.delim(filterFile)
-varb <- read.delim(list.files(vb_folder, pattern=varbinPattern, full.names=TRUE)[1], header=FALSE)
+varb <- read.delim(testFile, header=FALSE)
 gcFile <- read.delim(gcInputFile, header=TRUE)
 
 #Check that the first varbin file has the same number of rows as the GC file
