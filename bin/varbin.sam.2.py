@@ -51,7 +51,7 @@ def main():
 			continue
 			
 		thisChrominfo = chrominfo[thisChrom]
-		thisAbspos = long(thisChrompos) + long(thisChrominfo[2])
+		thisAbspos = int(thisChrompos) + int(thisChrominfo[2])
 		
 		counter += 1
 		#if counter % 100000 == 0:
@@ -64,7 +64,7 @@ def main():
 		#print thisChrom, thisChrompos, thisAbspos
 		while True:
 			#print indexDown, indexMid, indexUp
-			if thisAbspos >= long(bins[indexMid][2]):
+			if thisAbspos >= int(bins[indexMid][2]):
 				indexDown = indexMid + 0
 				indexMid = int((indexUp - indexDown) / 2.0) + indexMid
 			else:
