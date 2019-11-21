@@ -119,8 +119,8 @@ def fileToDictionary(inputFile, indexColumn):
 	for x in input:
 		arow = x.rstrip().split("\t")
 		id = arow[indexColumn]
-		if rd.has_key(id):
-#		if id not in rd:
+#		if rd.has_key(id):
+		if id in rd:
 			#rd[id].append(arow)
 			print ("duplicate knowngene id = " + id)
 			print ("arow =   " + str(arow))
