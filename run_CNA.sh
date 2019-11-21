@@ -89,6 +89,9 @@ done
 [ -z "$makeFig" ] && makeFig="TRUE"
 [ -z "$filter_CellWithEmptyBin" ] && filter_CellWithEmptyBin="0.1"
 
+[ -f $fastq_input ] || { echo " Warning !!! $fastq_input does not exist Please check your fastq files !!! " ;echo "$help";exit 1; }
+
+
 create_folder(){
   	root_dir=`dirname $0`
   	dashboard=`dirname $0`/dashboard
