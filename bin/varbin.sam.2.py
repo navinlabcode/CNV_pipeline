@@ -94,7 +94,7 @@ def main():
 	if isinstance(bcMedianIndex, int):
 		bcMedian = binCounts[bcMedianIndex]
 	if not isinstance(bcMedianIndex, int):
-		bcMedian = binCounts[int(bcMedianIndex, .5)] + binCounts[int(bcMedianIndex, .5) - 1]  
+		bcMedian = binCounts[int(bcMedianIndex)] + binCounts[int(bcMedianIndex) - 1]  
 	#print bcMedian
 	STATFILE.write("TotalReads\tDupsRemoved\tReadsKept\tMedianBinCount\n")
 	STATFILE.write(str(totalReads))
