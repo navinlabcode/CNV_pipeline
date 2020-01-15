@@ -52,6 +52,7 @@ if(!require(x, character.only = TRUE)){
 
 })
 
+options(bitmapType='cairo')
 theme_set(theme_cowplot())
 ```
 
@@ -136,13 +137,11 @@ umap_df <- umap_df[cl$cell,]
 
 # getting number of needed colors for cl
 n_colors <- cl$cluster %>% unique() %>% length()
-
 # ordering cells
 dat_seg_order <- dat_seg_t[cl$cell,]
 
 # setting colors
-row_col <- setNames(colorRampPalette(paletteer_d(pals, 
-                                alphabet, 26))(n_colors),
+row_col <- setNames(colorRampPalette(paletteer_d("pals::alphabet", 26))(n_colors),
                     levels(as.factor(cl$cluster)))
 ```
 
@@ -657,7 +656,7 @@ plots <- invisible(parallel::mclapply(seq_along(cell_names), function (x) {
   cell_ploidy_info <- dat_ploidy %>% 
     dplyr::filter(sample_name == cell_names[x])
   
-  p <- ggplot(df %>% filter(cell == cell_names[x])) +
+  p <- ggplot(df %>% dplyr::filter(cell == cell_names[x])) +
     geom_point(aes(abspos, ratios_rat, color = as.factor(int_value)),
                shape = 20,
                size = 1,
