@@ -25,14 +25,21 @@ def main():
 	prevChrompos = ""
 	for x in INFILE:
 		arow = x.rstrip().split("\t")
-		thisChrom = arow[2][3:]
+		#thisChrom = arow[2][3:]
+		thisChrom = arow[2]
+		thisChrom = thisChrom.strip("chr")
 		thisChrompos = arow[3]
 
 
 		if thisChrom.find("_") > -1:
 			continue
-		if thisChrom == "M":
-			#print thisChrom
+		if thisChrom.find(".") > -1:
+			continue
+		if thisChrom.find("*") > -1:
+			continue
+		if thisChrom.find("M")>-1:
+			continue
+		if thisChrom.find("s")>-1:
 			continue
 		if thisChrom == "":
 			continue

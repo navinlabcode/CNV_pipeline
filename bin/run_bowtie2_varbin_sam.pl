@@ -44,9 +44,6 @@ die `pod2text $0` if ($Help || !$sam_dir);
 my $bin=dirname($0);
 my $support=dirname($bin);
 my $config="$support\/lib\/CNA.config";
-#print "$config\n";
-#@files=glob("$fqdir/*_R1*.fastq $fqdir/*_R1*.fastq.gz");
-@files=glob("$sam_dir/*.sam");
 my $i=0;
 my $pre="";
 my $bowtie=find_path("$config","bowtie");
@@ -54,7 +51,10 @@ my $samtools=find_path("$config","samtools");
 my $bowtie_hg19=find_path("$config","bowtie_hg19");
 my $chrominfo=find_path("$config","chrominfo");
 my $varbin_python=find_path("$config","varbin_python");
+$varbin_python=$bin."/".`basename $varbin_python`;
+chomp $varbin_python;
 my $bins;
+
 if ($res =~/^200$/){
  $bins=find_path("$config","bins_200k");
 }elsif($res=~/^1000$/){
@@ -67,9 +67,17 @@ if ($res =~/^200$/){
  $bins=find_path("$config","bins_10M");
 }
 
+$bins=$support."/lib/".`basename $bins`;
+chomp $bins;
+$chrominfo=$support."/lib/".`basename $chrominfo`;
+chomp $chrominfo;
+
 my $sortdir_sub;
+open FIL,$sam_dir or die $!;
+my @files=<FIL>;
 foreach $file (@files)
 {
+	chomp $file;
 	my $fname=basename($file);
 	$fname =~ /^(.*?)\./;
 #	$fname =~ /^(.*?)\.(.*?)\.bam/;
@@ -78,9 +86,9 @@ foreach $file (@files)
 #	print "$cmd\n";
 #	system("$cmd");
 #Creates varbins files
-	$cmd="$varbin_python $sam_dir/$pre.sam $vb_dir\/$pre\.vb $stat_dir\/$pre\.stat\.txt $chrominfo $bins";
+	$cmd="$varbin_python $file $vb_dir\/$pre\.vb $stat_dir\/$pre\.stat\.txt $chrominfo $bins";
 	print "$cmd\n";
-#	system("$cmd");
+	#system("$cmd");
 }
 
 

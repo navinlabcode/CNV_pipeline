@@ -66,9 +66,9 @@ if(!file.exists(gcInputFile))
 	stop("The GC file you specified does not exist.")
 
 #read in the files
-filter <- read.delim(filterFile)
-varb <- read.delim(testFile, header=FALSE)
-gcFile <- read.delim(gcInputFile, header=TRUE)
+filter <- read.delim(filterFile,stringsAsFactors = F)
+varb <- read.delim(testFile, header=FALSE,stringsAsFactors = F)
+gcFile <- read.delim(gcInputFile, header=TRUE,stringsAsFactors = F)
 
 #Check that the first varbin file has the same number of rows as the GC file
 if(nrow(varb) != nrow(gcFile))
@@ -104,7 +104,7 @@ if(!("bin.start" %in% colnames(filter)))
 if(!("bin.chrom" %in% colnames(filter)))
 	stop("Filter file does not contain the correct column names.")	
 
-gc <- read.delim(gcInputFile, header=TRUE)
+gc <- read.delim(gcInputFile, header=TRUE,stringsAsFactors = F)
 
 #Make sure we are removing 1 line for each of the to Remove lines (No more or less)
 toRemove <- NULL
@@ -154,7 +154,7 @@ fun_parallel<-function(x){
       if(file.info(file)$size==0){
        	return("file is empty")
       }		
-     vabtemp <- read.delim(file, header=FALSE)
+     vabtemp <- read.delim(file, header=FALSE,stringsAsFactors = F)
     
 	  tryCatch({ if(sum(vabtemp$V5==0) > filter_CellWithEmptyBin*nrow(vabtemp)){
       	return("most bins are empty")

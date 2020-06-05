@@ -3,7 +3,7 @@
 #Initial Processing for identifying the existence of Copy number variations (CNVs)
 #Depends on: Bowtie, Samtools, GNU Parallel, R package(DNAcopy).
 #Author: Min Hu, Darlan Conterno Minussi
-#Last Updated: Jul 5th, 2019
+#Last Updated: Jun 5th, 20209
 
 
 main(){
@@ -13,8 +13,8 @@ main(){
 	filter
 	segmentation
 	heatmap
-	dashboard
 	ratio_plots
+	dashboard
 	clean
      }
 
@@ -28,10 +28,11 @@ Description
         Initial Processing for identifying the existence of Copy number variations (CNVs)
 
 Usage
-        sh `basename $0` [--fastq] <fastq_path_file> [--output] <outdir_path> [--sample] <tissue sample name> [--res] <resolution of bin size> [--cpu] < Cpu number> [--undo_prune] <the proportional increase number for the CBS segment function> [alpha] <significance levels for the CBS test [filter_CellWithEmptyBin] < filter the cells with empty reads in bins > [--makeFig] <plot the CNV profile per cell>  1>process.info 2>process.log
+        sh `basename $0` [--fastq] <fastq_path_file> [--sam] <sam_file> [--output] <outdir_path> [--sample] <tissue sample name> [--res] <resolution of bin size> [--cpu] < Cpu number> [--undo_prune] <the proportional increase number for the CBS segment function> [alpha] <significance levels for the CBS test [filter_CellWithEmptyBin] < filter the cells with empty reads in bins > [--makeFig] <plot the CNV profile per cell>  1>process.info 2>process.log
 
 arguments:
         -f|--fastq: [ The path file to the fastq ]
+	-l|--sam: [sam input]
 	-o|--output: [ output(default) ]
 	-s|--sample: [ sample(default) ]
 	-r|--res:	[ 100 200(default) 300 400 500 1000 2000 5000 10000 ]
@@ -49,7 +50,7 @@ or
 
 if [[ $# -lt 3 ]] ; then echo "$help" ; exit 1 ; fi
 
-TEMP=`getopt -o f:o:s:r:c:u:a:e:m:p: --long fastq:,output:,sample:,res:,cpu:,undo_prune:,alpha:,filter_CellWithEmptyBin:,facs:,makeFig: \
+TEMP=`getopt -o f:l:o:s:r:c:u:a:e:m:p: --long fastq:,sam:,output:,sample:,res:,cpu:,undo_prune:,alpha:,filter_CellWithEmptyBin:,facs:,makeFig: \
         -n 'example.bash' -- "$@"`
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 eval set -- "$TEMP"
@@ -57,6 +58,8 @@ while true ; do
         case "$1" in
         -f|--fastq)
                 fastq_input=$2 ; shift 2 ;;
+        -l|--sam)
+                sam_input=$2 ; shift 2 ;;
         -o|--output)
                 output=$2 ; shift 2 ;;
         -s|--sample)
@@ -121,13 +124,19 @@ run_bowtie_varbin(){
 	[ -e "$output/split_bowtie.sh" ] && `rm -f "$output/split_bowtie.sh"`
 	s1_tmp="$output/split_bowtie.sh"
 	s2_tmp="$output/split_bowtie_uniq.sh"
-	cat $fastq_input |grep -v "_R2_" | while read line
-	do
-	r1_input=${line}
-	r2_input=`ls $r1_input|sed -e 's/_R1_/_R2_/g'`
-	s1_dir=`dirname $r1_input`
-	echo "perl $bin/run_bowtie2_varbin.pl -fqdir $s1_dir -samdir $sam_folder -bamdir $bam_folder -sortdir $sort_folder -vb_dir $vbdir_folder -stat_dir $stat_folder -res $res " >> $s1_tmp
-	done
+	
+	if [[ -f $sam_input ]]
+	then
+	 perl $bin/run_bowtie2_varbin_sam.pl  -samdir $sam_input -vb_dir $vbdir_folder -stat_dir $stat_folder -res $res >>$s1_tmp
+	else
+	 cat $fastq_input |grep -v "_R2_" | while read line
+	   do
+	     r1_input=${line}
+	     r2_input=`ls $r1_input|sed -e 's/_R1_/_R2_/g'`
+	     s1_dir=`dirname $r1_input`
+	     echo "perl $bin/run_bowtie2_varbin.pl -fqdir $s1_dir -samdir $sam_folder -bamdir $bam_folder -sortdir $sort_folder -vb_dir $vbdir_folder -stat_dir $stat_folder -res $res " >> $s1_tmp
+	   done
+	fi
 	sort $s1_tmp |uniq > $s2_tmp
 	gnu_parallel=$(grep "parallel" $lib/CNA.config | cut -d "=" -f 2)
 	cpu="$(expr $cpu / 6)"
