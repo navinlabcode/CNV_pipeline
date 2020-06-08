@@ -21,7 +21,7 @@ print(output_dir)
 
 ncpu = 40
 
-packages <- c("tidyverse", "here", "parallel", "fs", "janitor")
+packages <- c("tidyverse", "here", "parallel", "fs", "janitor","scquantum")
 # if a package is installed, it will be loaded
 # if any are not, the missing package(s) will be installed and loaded
 package.check <- lapply(packages, FUN = function(x) {
@@ -37,6 +37,7 @@ dir_create(output_dir_CN)
 
 rat_data <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob= "*uber*ratio.txt")) %>% janitor::clean_names()
 
+
 rat_data_cp <- rat_data %>% dplyr::select(-chrom, -chrompos, -abspos)
 
 # reading bin
@@ -47,28 +48,24 @@ seg_data <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",args[2]), recurs
 
 seg_data_cp <- seg_data %>% dplyr::select(-chrom, -chrompos, -abspos)
 
-# obtaining integer median value to use for color
-source(paste(bin_directory, "/integer_cn.R", sep = ""))
 
-# calling Alex integer method sourced from integer_cn.R
-dat_ploidy <- Reduce(rbind, 
-                     parallel::mcmapply(function(prof, name) c(name, ploidy.and.peakheight(prof)),
-                                        rat_data_cp, names(rat_data_cp),
-                                        mc.cores= ncpu, SIMPLIFY=FALSE)) %>% 
-  as_tibble() %>% 
-  readr::type_convert() %>% 
-  dplyr::rename(sample_name_original = V1) %>% 
-  dplyr::mutate(cell = sample_name_original) %>% 
-  dplyr::mutate(label = paste(cell, 
-                              ": ", 
-                              ploidy,
-                              sep = ""))
+# calling Alex integer method sourced from scquantum
+all.values <- apply(bin_data[,-(1:3)], 2, ploidy.inference, chrom=bin_data$chrom)
+dat_ploidy<-data.frame(cell=names(all.values),
+	ploidy=sapply(all.values, function(x) x$ploidy),
+	peak.height=sapply(all.values, function(x) x$peak_height)
+	) %>%
+	as_tibble() %>%
+	readr::type_convert() %>%
+	dplyr::rename(sample_name_original = cell) %>%
+	dplyr::mutate(cell = sample_name_original) %>%
+	dplyr::mutate(label = paste(cell,
+	": ",
+	ploidy,
+	sep = ""))
+	
+ploidy_median <- median(dat_ploidy$ploidy)
 
-# saving the median
-# filtering errors of ploidy (I'm considering 1 calls as error)
-dat_ploidy_filtered <- dat_ploidy %>% 
-  dplyr::filter(ploidy != 1)
-ploidy_median <- median(dat_ploidy_filtered$ploidy)
 
 # establishing a value to truncate the ploidy that will be used for the colors later
 ploidy_trunc_val <- round(ploidy_median) * 2
@@ -145,7 +142,12 @@ max_int_value <- max(df$int_value)
 df$int_value[df$int_value > ploidy_trunc_val] <- ploidy_trunc_val
 
 # setting colors of the ratios according to the inferred ploidy
-if (round(ploidy_median) == 2 ) {
+if(round(ploidy_median) == 1){
+  df <- df %>% dplyr::mutate(colors = case_when(
+    int_value == 0 ~ "darkblue",
+    int_value == 1 ~ "dodgerblue",
+    int_value == 2 ~ "azure4"))
+}else if (round(ploidy_median) == 2 ) {
   df <- df %>% dplyr::mutate(colors = case_when(
     int_value == 0 ~ "darkblue",
     int_value == 1 ~ "dodgerblue",
@@ -237,6 +239,7 @@ ggaes <- list(
 
 invisible(parallel::mclapply(seq_along(cell_names), function (x) {
   # just get the mean to calculate the CN, should be 1 though...
+
   mean_ratios_cell <- df %>% dplyr::filter(cell == cell_names[x]) %>% pull(ratios_rat) %>% mean()
   
   #getting cell ploidy info
@@ -259,7 +262,7 @@ invisible(parallel::mclapply(seq_along(cell_names), function (x) {
                   "Inferred ploidy: ", 
                   round(cell_ploidy_info$ploidy,2),
                   " - Confidence: ",
-                  round(cell_ploidy_info$peak_height,2), sep = "")) +
+                  round(cell_ploidy_info$peak.height,2), sep = "")) +
     scale_y_continuous(sec.axis = sec_axis(~.*cell_ploidy_info$ploidy/mean_ratios_cell, breaks = seq(0,max_int_value,1), name  = "Copy Number"), 
                        name = "Ratios") +
     scale_color_identity()
@@ -272,7 +275,7 @@ invisible(parallel::mclapply(seq_along(cell_names), function (x) {
 
 
 invisible(parallel::mclapply(seq_along(cell_names), function (x) {
-  
+
   sc_df<-df %>% dplyr::filter(cell == cell_names[x]) 
   
   p <- ggplot(sc_df %>% dplyr::mutate(label=ifelse(round(seg_mean) >= 2, ">=2", as.character(round(seg_mean))))) +
