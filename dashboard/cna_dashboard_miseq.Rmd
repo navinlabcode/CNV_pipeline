@@ -92,7 +92,7 @@ dat_rat_cp <- dat_rat %>% dplyr::select(-chrom, -chrompos, -abspos)
 
 # dat_seg setup
 dat_seg_s <- dat_seg %>% 
-  dplyr::select(-chrom, -chrompos, - abspos)
+  dplyr::select(-chrom, -chrompos, -abspos)
 
 dat_seg_t <- as.data.frame(t(dat_seg_s))
 

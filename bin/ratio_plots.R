@@ -63,10 +63,8 @@ dat_ploidy<-data.frame(cell=names(all.values),
 	": ",
 	ploidy,
 	sep = ""))
-	
-ploidy_median <- median(dat_ploidy$ploidy)
-
-
+dat_ploidy$ploidy<- dat_ploidy$ploidy %>% replace_na(0)	
+ploidy_median <- median(dat_ploidy$ploidy[dat_ploidy$ploidy!=0])
 # establishing a value to truncate the ploidy that will be used for the colors later
 ploidy_trunc_val <- round(ploidy_median) * 2
 

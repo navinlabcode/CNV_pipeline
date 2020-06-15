@@ -6,9 +6,9 @@ output:
     theme: default
     logo: navin_lab_logo.png
 params:
-  directory: 
-    value: x
-  outdir: y
+  directory:
+    value:
+  outdir:
 editor_options: 
   chunk_output_type: console
 ---
@@ -51,68 +51,54 @@ if(!require(x, character.only = TRUE)){
 }
 
 })
-theme_set(theme_cowplot())
-options(bitmapType='cairo')
 
+options(bitmapType='cairo')
+theme_set(theme_cowplot())
 ```
 
-```{r setting_up, include=FALSE}
+```{r setting_up,include=FALSE}
 # message
 message("Rendering Dashboard")
 
 # reading data
-dat_seg <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob= "*uber*seg.txt")) %>% janitor::clean_names()
-#dat_seg <-readr::read_tsv("/volumes/seq/projects/CNA_projects/DT_CNA/snap_frozen/Ovary/OV4/output/final_result/uber.sample.seg.txt") %>% janitor::clean_names()
+dat_seg <- read.table(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob="*uber*seg.txt"),sep="\t",header=T) %>% janitor::clean_names()
 dat_seg_cp <- dat_seg %>% dplyr::select(-chrom, -chrompos, -abspos)
 
-dat_bin <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob= "*uber*bin.txt")) %>% janitor::clean_names()
-#dat_bin <-readr::read_tsv("/volumes/seq/projects/CNA_projects/DT_CNA/snap_frozen/Ovary/OV4/output/final_result/uber.sample.bin.txt") %>% janitor::clean_names()
-
-dat_stats <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, regex= "all_stat_metrics.txt")) %>% 
-  janitor::clean_names() %>% 
+dat_bin <- read.table(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob="*uber*bin.txt"),sep="\t",header=T) %>% janitor::clean_names()
+dat_stats <- read.table(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob="*stat*metrics.txt"),sep="\t",header=T) %>%
+  janitor::clean_names() %>%
   mutate(duplicates = dups_removed/total_reads)
-#dat_stats <- readr::read_tsv("/volumes/seq/projects/CNA_projects/DT_CNA/snap_frozen/Ovary/OV4/output/metrics/all_stat_metrics.txt") %>% 
- # janitor::clean_names() %>% 
-  #mutate(duplicates = dups_removed/total_reads)
+
 
 # correcting names
 dat_stats$sample_name <- make_clean_names(dat_stats$sample_name)
 
 raw_dat_stats <- dat_stats
 
-dat_stats <- dat_stats %>%
-  dplyr::filter(sample_name %in% names(dat_seg))
+dat_stats <- dat_stats %>%dplyr::filter(sample_name %in% names(dat_seg))
 
 dat_stats_rm <- raw_dat_stats %>% 
   dplyr::filter(!sample_name %in% names(dat_seg))
 
 # dat_stats metrics
-dat_stats_metrics <- dat_stats %>% 
-  dplyr::select(-sample_name) %>% 
-  summarise_all(median)
-
+dat_stats_metrics <- dat_stats %>% dplyr::select(-sample_name) %>%summarise_all(median)
 # reading ratio
-dat_rat <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob= "*uber*ratio.txt")) %>% 
- janitor::clean_names()
-#dat_rat <-readr::read_tsv("/volumes/seq/projects/CNA_projects/DT_CNA/snap_frozen/Ovary/OV4/output/final_result/uber.sample.ratio.txt") %>% janitor::clean_names()
-dat_rat_cp <- dat_rat %>% dplyr::select(-chrom, -chrompos, -abspos)
 
+dat_rat <- read.table(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob= "*uber*ratio.txt"),sep="\t",header=T) %>%janitor::clean_names()
+#dat_rat_cp <- dat_rat %>% dplyr::select(-chrom, -chrompos, -abspos)
+
+dim(dat_rat)
 # dat_seg setup
-dat_seg_s <- dat_seg %>% 
-  dplyr::select(-chrom, -chrompos, - abspos)
+dat_seg_s <- dat_seg %>%dplyr::select(-chrom, -chrompos, -abspos)
 
 dat_seg_t <- as.data.frame(t(dat_seg_s))
+#dat_seg_t[1:5,1:5]
 
 # n cells
-n_cells <- dat_seg %>% 
-  dplyr::select(-abspos, 
-                -chrompos, 
-                -chrom) %>% 
-  ncol()
+n_cells <- dat_seg %>%dplyr::select(-abspos, -chrompos,-chrom) %>%ncol()
 
-# sourcing integer inference
-#source(paste(params$directory, "/integer_cn.R", sep = ""))
 ```
+
 
 ```{r clustering, include = FALSE}
 if (n_cells < 30) {
@@ -223,6 +209,7 @@ cl$cluster %>% unique() %>% length() %>%
   valueBox()
 ```
 
+
 Column
 -----------------------------------------------------------------------
 
@@ -263,7 +250,7 @@ heat_row_col <- rowAnnotation(df =
 
 ht <- Heatmap(as.matrix(log2(dat_seg_order+1e-3)),
               cluster_columns = FALSE,
-              cluster_rows = FALSE,
+              cluster_rows = TRUE,
               show_row_names = FALSE,
               show_column_names = FALSE,
               use_raster = TRUE,
@@ -271,9 +258,10 @@ ht <- Heatmap(as.matrix(log2(dat_seg_order+1e-3)),
 	            col = circlize::colorRamp2(breaks = c(-2,0,2),c("dodgerblue3", "white", "firebrick3")),
               heatmap_legend_param = list(title = "Log2 (Ratio)"))
 
-draw(heat_row_col + ht)
-```
 
+
+draw(ht)
+```
 
 Column 
 -----------------------------------------------------------------------
@@ -290,7 +278,7 @@ p_umap <- umap_df %>%
                  color = as.factor(cluster),
                  label = Cell),
              show.legend = FALSE) +
-  scale_color_manual(values = row_col) +
+  #scale_color_manual(values = row_col) +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.line = element_blank(),
@@ -324,6 +312,7 @@ df<-data.frame(sample_name=names(all.values),
                               ": ",
                              ploidy,
                               sep = ""))
+df$ploidy[is.na(df$ploidy)]<-0
 ploidy_median <- median(df$ploidy)
 
 
@@ -335,7 +324,7 @@ dat_ploidy_cl <- dplyr::inner_join(df,umap_cl_result, by = "sample_name")
 p_ploidy <- ggplot(dat_ploidy_cl,aes(x = ploidy, 
                  y = peak.height, label = Cell)) + 
   geom_point(color = as.factor(dat_ploidy_cl$cluster)) +
-  scale_color_manual(values = row_col) + 
+ # scale_color_manual(values = row_col) + 
   scale_x_continuous(breaks = scales::pretty_breaks()) +
   scale_y_continuous(breaks = scales::pretty_breaks()) +
   xlab("Inferred ploidy") +
@@ -344,6 +333,7 @@ p_ploidy <- ggplot(dat_ploidy_cl,aes(x = ploidy,
 
 ggplotly(p_ploidy, tooltip = "Cell")
 ```
+
 
 QC
 =======================================================================
@@ -358,11 +348,11 @@ message("Calculating RMSE")
 rmses <- vector()
 
 for (i in 4:ncol(dat_seg)) {
-  actual <- dat_seg[, i] %>% pull()
-  predicted <- dat_rat[, i] %>% pull()
+  actual <- as.tibble(dat_seg[, i]) %>% dplyr::pull()
+  predicted <- as.tibble(dat_rat[, i]) %>% dplyr::pull()
 
   rmses[i] <- rmse(actual, predicted)
-  names(rmses)[i] <- names(dat_seg[, i]) 
+  names(rmses)[i] <- names(dat_seg)[i]
 }
 
 rmses_df <- enframe(rmses,
@@ -375,11 +365,11 @@ message("Calculating CV")
 cv <- vector()
 
 for(i in 4:ncol(dat_seg)) {
-  seg_n_probes <- rle(pull(dat_seg[,i]))$lengths
-  ratio_split <- split(pull(dat_rat[,i]), 
+  seg_n_probes <- rle(pull(as.tibble(dat_seg[,i])))$lengths
+  ratio_split <- split(pull(as.tibble(dat_rat[,i])), 
                        as.factor(rep.int(1:length(seg_n_probes), seg_n_probes)))
   cv[i] <- lapply(ratio_split, function(x) sd(x)/mean(x)) %>% unlist() %>% sum()
-  names(cv)[i] <- names(dat_seg[,i])
+  names(cv)[i] <- names(dat_seg)[i]
 }
 
 cv_df <- enframe(cv,
@@ -393,7 +383,7 @@ p <- cv_rmse_df %>%
   ggplot(aes(cv, rmse)) +
   geom_point(aes(label = sample_name)) +
   geom_smooth(method = "lm") +
-  scale_color_viridis_d() +
+  #viridis::scale_color_viridis(discrete = TRUE) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
   xlab("Coefficient of Variation") + 
@@ -407,7 +397,7 @@ p_rmse <- dplyr::inner_join(dat_stats, cv_rmse_df) %>%
   geom_smooth() +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + 
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) + 
-  scale_color_viridis_c(option = "inferno") +
+ # scale_color_viridis_c() +
   theme(axis.text.x = element_text(angle = 90)) +
   ylab("RMSE")
   
@@ -421,40 +411,7 @@ subplot(p,p_rmse,
 
 ```
 
-### Duplicates 
 
-```{r}
-# creates a index for x and y so I have a square matrix, also creates a lable for plotly
-p_dups <- dat_stats %>% 
-  mutate(idx_x = rep(1:sqrt(nrow(dat_stats)), 
-                     length.out = nrow(dat_stats), 
-                     each = sqrt(nrow(dat_stats)))) %>%
-  mutate(idx_y = rep(paste(1:sqrt(nrow(dat_stats)),"a", sep = ""),
-                     length.out = nrow(dat_stats)))  %>% 
-  dplyr::mutate(Cell = paste(sample_name,
-                              "- Duplicates: ",
-                             scales::percent(duplicates),
-                             sep = "")) %>% 
-  ggplot() + 
-  geom_tile(aes(x = idx_x, 
-                y = idx_y, 
-                fill = duplicates,
-                label = Cell)) +
-  coord_equal() + 
-  scale_fill_viridis_c(option = "viridis",
-                       labels = scales::percent) +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.line = element_blank(),
-        axis.ticks = element_blank()) +
-  ylab("") +
-  xlab("") 
-
-
-# ggplotly
-p_dups
-# ggplotly(p_dups, tooltip = "Cell") 
-```
 
 ### Bin count
 
@@ -519,6 +476,7 @@ dt_dat_stats_rm <- dat_stats_rm %>%
 
 DT::datatable(dt_dat_stats_rm, options = list(pageLength = 50))
 ```
+
 
 Example Profiles
 =======================================================================
@@ -734,4 +692,5 @@ The following packages were used in this dashboard:
 - ComplexHeatmap
 - flsa
 - Rphenograph
+
 
