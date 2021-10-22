@@ -8,13 +8,13 @@ CNV Pipeline Algorithm:
 -------------
  Features:
 
-        1. it can support both hiseq and nextseq data.
+        1. It can support both hiseq and nextseq data.
 
         2. The segmentations for CBS can run in paralell.  
 
-        3. it can analysis the CNV based on different bin size resolution from 100k to 10M.
+        3. It can analysis the CNV based on different bin size resolution from 100k to 10M.
 
-        4. it generates the QC results by dashboard
+        4. It generates the QC results by dashboard
 
 -------------
 Usage:
