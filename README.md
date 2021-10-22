@@ -22,6 +22,7 @@ Usage:
 step1: specify the path to all fastq files, for example:
 
 	ls /path/*.gz >fastq.input
+ or 	find /path/ "*.gz" -type f >fastq.input
 
 step2: run as follows
 

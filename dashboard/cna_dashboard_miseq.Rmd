@@ -9,6 +9,7 @@ params:
   directory:
     value:
   outdir:
+  id:
 editor_options: 
   chunk_output_type: console
 ---
@@ -61,13 +62,15 @@ theme_set(theme_cowplot())
 message("Rendering Dashboard")
 
 # reading data
-dat_seg <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob= "*uber*seg.txt")) %>% janitor::clean_names()
+dat_seg <- read.table(list.files(path = paste0(here(),"/",params$outdir), pattern="*\\.seg.txt",recursive = T,full.names=T),sep="\t",header=T) %>% janitor::clean_names() 
+#dat_seg <- read.table("/volumes/seq/projects/CNA_projects/DT_CNA/tech_dev/WDR_PM2119/output_2M/output/final_result/uber.sample.seg.txt",sep="\t",header=T) %>% janitor::clean_names() 
 dat_seg_cp <- dat_seg %>% dplyr::select(-chrom, -chrompos, -abspos)
 
-dat_bin <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob= "*uber*bin.txt")) %>% janitor::clean_names()
-dat_stats <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, regex= "all_stat_metrics.txt")) %>% 
-  janitor::clean_names() %>% 
-  mutate(duplicates = dups_removed/total_reads)
+dat_bin <- read.table(list.files(path = paste0(here(),"/",params$outdir), pattern="*\\.bin.txt",recursive = T,full.names=T),,sep="\t",header=T)%>% janitor::clean_names()
+#dat_bin <- read.table("/volumes/seq/projects/CNA_projects/DT_CNA/tech_dev/WDR_PM2119/output_2M/output/final_result/uber.sample.bin.txt",sep="\t",header=T) %>% janitor::clean_names()
+dat_stats <- read.table(list.files(path = paste0(here(),"/",params$outdir), pattern="*stat\\_metrics.txt",recursive= T,full.names=T),sep="\t",header=T) %>%   janitor::clean_names() %>% mutate(duplicates = dups_removed/total_reads)
+
+#dat_stats <- read.csv("/volumes/seq/projects/CNA_projects/DT_CNA/tech_dev/WDR_PM2119/output_2M/output/metrics/all_stat_metrics.txt",sep="\t",header=T) %>%  janitor::clean_names() %>% dplyr::mutate(duplicates = dups_removed/total_reads)
 
 # correcting names
 dat_stats$sample_name <- make_clean_names(dat_stats$sample_name)
@@ -86,8 +89,8 @@ dat_stats_metrics <- dat_stats %>%
   summarise_all(median)
 
 # reading ratio
-dat_rat <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob= "*uber*ratio.txt")) %>% 
-  janitor::clean_names()
+dat_rat <- read.table(list.files(path = paste0(here(),"/",params$outdir), pattern="*\\.ratio.txt",recursive = T,full.names=T),sep="\t",header=T) %>%janitor::clean_names()%>%janitor::clean_names()
+#dat_rat <- read.table("/volumes/seq/projects/CNA_projects/DT_CNA/tech_dev/WDR_PM2119/output_2M/output/final_result/uber.sample.ratio.txt",sep="\t",header=T) %>%janitor::clean_names()%>%janitor::clean_names()
 dat_rat_cp <- dat_rat %>% dplyr::select(-chrom, -chrompos, -abspos)
 
 # dat_seg setup
@@ -113,6 +116,14 @@ Summary
 
 Column {data-width=200}
 -----------------------------------------------------------------------
+
+### Sample ID
+
+```{r}
+ params$id %>%
+  valueBox(icon = "circle",
+           color = "#000000")
+```
 
 ### Cells Sequenced {.colored}
 
@@ -145,6 +156,14 @@ dat_seg %>%
   valueBox(icon = "circle",
            color = "#008000")
 ```
+
+### Total Reads (All PF Reads) {.colored}
+
+```{r tot_reads_val_box_all}
+sum(dat_stats$total_reads) %>%
+  valueBox(icon = "percentage")
+```
+
 
 ### Total Reads (Median) {.colored}
 
@@ -184,11 +203,11 @@ Column
 # chromosome annotation top bar
 # getting the vector of chrom lengths
 chr_lengths <- dat_seg %>% dplyr::select(abspos, chrom, chrompos) %>% 
-  mutate(chrom=gsub("chr","",chrom))%>% mutate(chrom=gsub("X","23",chrom))%>%
-  mutate(chrom=gsub("Y","24",chrom))%>% 
-  mutate_at(2, as.integer) %>% 
+  dplyr::mutate(chrom=gsub("chr","",chrom))%>% dplyr::mutate(chrom=gsub("X","23",chrom))%>%
+  dplyr::mutate(chrom=gsub("Y","24",chrom))%>% 
+  dplyr::mutate_at(2, as.integer) %>% 
   group_by(chrom)%>%summarize(n = n()) %>% 
-  pull(n)
+  dplyr::pull(n)
 
 
 chr_binary <- rep(c(2,1), 12)
@@ -215,7 +234,7 @@ chr_bar <- HeatmapAnnotation(chr_text = anno_text(v,
 ht <- Heatmap(as.matrix(log2(dat_seg_t+1e-3)),
               cluster_columns = FALSE,
               cluster_rows = TRUE,
-              show_row_names = TRUE,
+              show_row_names = FALSE,
               show_column_names = FALSE,
               use_raster = TRUE,
               top_annotation = chr_bar,
@@ -240,11 +259,13 @@ message("Calculating RMSE")
 rmses <- vector()
 
 for (i in 4:ncol(dat_seg)) {
-  actual <- dat_seg[, i] %>% pull()
-  predicted <- dat_rat[, i] %>% pull()
+  actual <- dat_seg[, i] 
+  #%>% dplyr::pull()
+  predicted <- dat_rat[, i] 
+  #%>% dplyr::pull()
 
   rmses[i] <- rmse(actual, predicted)
-  names(rmses)[i] <- names(dat_seg[, i]) 
+  names(rmses)[i] <- names(dat_seg)[i] 
 }
 
 rmses_df <- enframe(rmses,
@@ -257,11 +278,11 @@ message("Calculating CV")
 cv <- vector()
 
 for(i in 4:ncol(dat_seg)) {
-  seg_n_probes <- rle(pull(dat_seg[,i]))$lengths
-  ratio_split <- split(pull(dat_rat[,i]), 
+  seg_n_probes <- rle(dat_seg[,i])$lengths
+  ratio_split <- split(dat_rat[,i], 
                        as.factor(rep.int(1:length(seg_n_probes), seg_n_probes)))
   cv[i] <- lapply(ratio_split, function(x) sd(x)/mean(x)) %>% unlist() %>% sum()
-  names(cv)[i] <- names(dat_seg[,i])
+  names(cv)[i] <- names(dat_seg)[i]
 }
 
 cv_df <- enframe(cv,
@@ -269,13 +290,13 @@ cv_df <- enframe(cv,
                       value = "cv"
 )
 
-cv_rmse_df <- inner_join(rmses_df, cv_df)
+cv_rmse_df <- inner_join(rmses_df, as.data.frame(cv_df))
 
 p <- cv_rmse_df %>% 
   ggplot(aes(cv, rmse)) +
   geom_point(aes(label = sample_name)) +
   geom_smooth(method = "lm") +
-  scale_color_viridis_d() +
+ # scale_color_viridis_d() +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
   xlab("Coefficient of Variation") + 
@@ -283,13 +304,13 @@ p <- cv_rmse_df %>%
 
 p <- ggplotly(p)
 
-p_rmse <- inner_join(dat_stats, cv_rmse_df) %>% 
+p_rmse <- inner_join(dat_stats, as.data.frame(cv_rmse_df)) %>% 
   ggplot(aes(reads_kept, rmse)) + 
   geom_point() +
   geom_smooth() +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + 
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) + 
-  scale_color_viridis_c(option = "inferno") +
+#  scale_color_viridis_c(option = "inferno") +
   theme(axis.text.x = element_text(angle = 90)) +
   ylab("RMSE")
   
@@ -303,40 +324,6 @@ subplot(p,p_rmse,
 
 ```
 
-### Duplicates 
-
-```{r}
-# creates a index for x and y so I have a square matrix, also creates a lable for plotly
-p_dups <- dat_stats %>% 
-  mutate(idx_x = rep(1:sqrt(nrow(dat_stats)), 
-                     length.out = nrow(dat_stats), 
-                     each = sqrt(nrow(dat_stats)))) %>%
-  mutate(idx_y = rep(paste(1:sqrt(nrow(dat_stats)),"a", sep = ""),
-                     length.out = nrow(dat_stats)))  %>% 
-  dplyr::mutate(Cell = paste(sample_name,
-                              "- Duplicates: ",
-                             scales::percent(duplicates),
-                             sep = "")) %>% 
-  ggplot() + 
-  geom_tile(aes(x = idx_x, 
-                y = idx_y, 
-                fill = duplicates,
-                label = Cell)) +
-  coord_equal() + 
-  scale_fill_viridis_c(option = "viridis",
-                       labels = scales::percent) +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.line = element_blank(),
-        axis.ticks = element_blank()) +
-  ylab("") +
-  xlab("") 
-
-
-# ggplotly
-p_dups
-# ggplotly(p_dups, tooltip = "Cell") 
-```
 
 ### Bin count
 
@@ -380,6 +367,34 @@ dat_stats %>%
   ylab("Frequency")
 ```
 
+### Duplication
+
+```{r}
+p1<-dat_stats %>% mutate(duplicates=round(duplicates,2)) %>% ggplot()+
+  geom_histogram(aes(x =duplicates,y= ..count../sum(..count..)),fill = "white",color = "black")+
+  xlab("Duplication ratio") +
+  ylab("Frequency")
+
+p2 <- dat_stats %>% mutate(duplicates=round(duplicates,2),total_reads=round(total_reads/1e+6,2)) %>%
+  ggplot(aes(total_reads, duplicates)) +
+  geom_point(aes(label = sample_name)) +
+  #geom_smooth(method = "lm") +
+  #viridis::scale_color_viridis(discrete = TRUE) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  xlab("Read count per cell(M)") +
+  ylab("duplication ratio")+xlim(0,2)
+p2 <- ggplotly(p2)
+
+subplot(p1,p2,
+        nrows = 2,
+        titleX = TRUE,
+        titleY = TRUE)
+```
+
+
+
+
 Row {.tabset .tabset-fade .tabset-pills}
 -----------------------------------------------------------------------
 
@@ -419,9 +434,24 @@ knitr::include_graphics(plots[1:2])
 
 ```
 
-### 3
+### 3-4
+```{r fig.width=10,fig.height=2.5}
+knitr::include_graphics(plots[3:4])
+```
+
+### 5-6
+```{r fig.width=10,fig.height=2.5}
+knitr::include_graphics(plots[5:6])
+```
+
+### 7-8
+```{r fig.width=10,fig.height=2.5}
+knitr::include_graphics(plots[7:8])
+```
+
+### 9
 ```{r fig.width=5,fig.height=2.5}
-knitr::include_graphics(plots[3])
+knitr::include_graphics(plots[9])
 ```
 
 

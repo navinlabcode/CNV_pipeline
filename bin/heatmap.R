@@ -64,9 +64,8 @@ dim(sam)
 
 tryCatch(expr = { library("flowViz")}, 
          error = function(e) { 
-           source("https://bioconductor.org/biocLite.R")
-           biocLite("flowViz")}, 
-         finally = library("flowViz"))
+        BiocManager::install("flowViz") 
+	finally = library("flowViz")})
 
 #require(IDPmisc)
 #sam<-NaRV.omit(sam)

@@ -19,9 +19,9 @@ output_dir_CN <- paste0(args[2],"/final_result/ratio_plots_CN/")
 output_dir <- paste0(args[2],"/final_result/ratio_plots/")
 print(output_dir)
 
-ncpu = 40
+ncpu = 90
 
-packages <- c("tidyverse", "here", "parallel", "fs", "janitor","scquantum")
+packages <- c("tidyverse", "parallel", "fs","here", "janitor","scquantum")
 # if a package is installed, it will be loaded
 # if any are not, the missing package(s) will be installed and loaded
 package.check <- lapply(packages, FUN = function(x) {
@@ -33,18 +33,22 @@ package.check <- lapply(packages, FUN = function(x) {
 
 dir_create(output_dir_CN)
 
+# reading bin
+#bin_data <- read.table(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob="*uber*bin.txt"),sep="\t",header=T) %>% janitor::clean_names()
+print(paste0(getwd(),"/",args[2]))
+bin_data <- read.table(list.files(path = paste0(getwd(),"/",args[2]), pattern="*\\.bin.txt",recursive = T,full.names=T),sep="\t",header=T) %>% janitor::clean_names()
+message(dim(bin_data))
 # reading ratio
 
-rat_data <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob= "*uber*ratio.txt")) %>% janitor::clean_names()
-
+#rat_data <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob="*uber*ratio.txt")) %>% janitor::clean_names()
+#rat_data <- read.table(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob="*uber*ratio.txt"),sep="\t",header=T) %>% janitor::clean_names()
+rat_data <- read.table(list.files(path = paste0(getwd(),"/",args[2]), pattern="*\\.ratio.txt",recursive = T,full.names=T),sep="\t",header=T) %>% janitor::clean_names()
+dim(rat_data)
 
 rat_data_cp <- rat_data %>% dplyr::select(-chrom, -chrompos, -abspos)
 
-# reading bin
-bin_data <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob= "*uber*bin.txt")) %>% janitor::clean_names()
-
 # reading seg
-seg_data <- readr::read_tsv(fs::dir_ls(path = paste0(here(),"/",args[2]), recurse = T, glob= "*uber*seg.txt")) %>% janitor::clean_names()
+seg_data <- read.table(list.files(path = paste0(getwd(),"/",args[2]), pattern="*\\.seg.txt",recursive = T,full.names=T),sep="\t",header=T) %>% janitor::clean_names()
 
 seg_data_cp <- seg_data %>% dplyr::select(-chrom, -chrompos, -abspos)
 

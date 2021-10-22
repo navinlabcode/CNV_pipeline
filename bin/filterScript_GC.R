@@ -29,6 +29,10 @@ for( myStr in commandArgs() )
  	{
  	filter_CellWithEmptyBin <-as.numeric(substring(myStr, nchar("-filter_CellWithEmptyBin=")+1))
  	}
+	if(length(grep("^-filter_ReadCount=",myStr))>0)
+	{
+	filter_ReadCount <-as.numeric(substring(myStr, nchar("-filter_ReadCount=")+1))	
+	}
 	  if (length(grep("^-cpu=", myStr))>0)
   	{
     	cpu <- as.numeric(substring(myStr, nchar("-cpu=")+1))
@@ -155,7 +159,11 @@ fun_parallel<-function(x){
        	return("file is empty")
       }		
      vabtemp <- read.delim(file, header=FALSE,stringsAsFactors = F)
-    
+	if(sum(vabtemp$V4)<filter_ReadCount){
+	return("Read count is low")
+	 }    
+     	 
+
 	  tryCatch({ if(sum(vabtemp$V5==0) > filter_CellWithEmptyBin*nrow(vabtemp)){
       	return("most bins are empty")
      	 }

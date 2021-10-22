@@ -96,13 +96,12 @@ def main():
 
 	binCounts.sort()	
 	#print len(binCounts)/2
-	bcMedianIndex = len(binCounts)/2
-	bcMedian = 0 
+	bcMedianIndex = len(binCounts)//2
+	#Median = 0 
 	if isinstance(bcMedianIndex, int):
 		bcMedian = binCounts[bcMedianIndex]
 	if not isinstance(bcMedianIndex, int):
-		bcMedian = binCounts[int(bcMedianIndex)] + binCounts[int(bcMedianIndex) - 1]  
-	#print bcMedian
+		bcMedian = (binCounts[int(bcMedianIndex)] + binCounts[int(bcMedianIndex) - 1])//2
 	STATFILE.write("TotalReads\tDupsRemoved\tReadsKept\tMedianBinCount\n")
 	STATFILE.write(str(totalReads))
 	STATFILE.write("\t")

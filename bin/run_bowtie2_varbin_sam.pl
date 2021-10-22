@@ -32,13 +32,15 @@ my ($Verbose,$Help,$fqdir,$outdir,$bedfile);
 GetOptions(
 		"verbose"=>\$Verbose,
 		"help"=>\$Help,
-		"samdir:s"=>\$sam_dir,
+		"bamdir:s"=>\$bamdir,	
+		"sam:s"=>\$samfile,
+		"sortdir:s"=>\$sortdir,
 		"vb_dir:s"=>\$vb_dir,
 		"stat_dir:s"=>\$stat_dir,
 		"res:s"=>\$res,
-
+		"genome_len:s"=>\$genome_fai
 	  );
-die `pod2text $0` if ($Help || !$sam_dir);
+die `pod2text $0` if ($Help || !$samfile);
 
 
 my $bin=dirname($0);
@@ -73,7 +75,7 @@ $chrominfo=$support."/lib/".`basename $chrominfo`;
 chomp $chrominfo;
 
 my $sortdir_sub;
-open FIL,$sam_dir or die $!;
+open FIL,$samfile or die $!;
 my @files=<FIL>;
 foreach $file (@files)
 {
@@ -82,13 +84,24 @@ foreach $file (@files)
 	$fname =~ /^(.*?)\./;
 #	$fname =~ /^(.*?)\.(.*?)\.bam/;
 	$pre=$1;
-#	$cmd="$samtools view $sam_dir/$fname >$sortdir/$pre.sort.sam";
-#	print "$cmd\n";
-#	system("$cmd");
+#from sam to bam
+	$bamName=$bamdir."/".$pre.".bam";
+	$cmd_bam="$samtools view -@ 6 -bt $genome_fai -q 1 $file > $bamName 2>/dev/null";
+#sort bam
+	$sortName=$sortdir."/".$pre.".sort";
+	$cmd_sort="$samtools sort -@ 6 $bamName $sortName";
+	$cmd_sam="$samtools view -@ 6 $sortName.bam >$sortdir/$pre.sort.sam 2>/dev/null";
 #Creates varbins files
-	$cmd="$varbin_python $file $vb_dir\/$pre\.vb $stat_dir\/$pre\.stat\.txt $chrominfo $bins";
-	print "$cmd\n";
-	#system("$cmd");
+	$cmd_var="$varbin_python $sortdir/$pre.sort.sam $vb_dir\/$pre\.vb $stat_dir\/$pre\.stat\.txt $chrominfo $bins";
+#	system("$cmd");
+	print "$cmd_bam;";
+#	system("$cmd_bam");
+	print  "$cmd_sort;";
+#	system("$cmd_sort");
+	print  "$cmd_sam;";
+#	system("$cmd_sam");
+	print "$cmd_var\n";
+#	system("$cmd_var");
 }
 
 

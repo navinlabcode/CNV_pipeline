@@ -9,6 +9,7 @@ params:
   directory:
     value:
   outdir:
+  id:
 editor_options: 
   chunk_output_type: console
 ---
@@ -26,7 +27,6 @@ packages <- c("tidyverse", "fs", "shiny",
               "janitor", "ape", "ggsci", "plotly",
               "amap", "paletteer", "scales", "umap","uwot",
               "flsa", "BiocManager", "DT", "devtools", "Metrics","scquantum")
-
 package.check <- lapply(packages, FUN = function(x) {
   if (!require(x, character.only = TRUE)) {
     install.packages(x, dependencies = TRUE,repos = "http://cran.us.r-project.org")
@@ -61,14 +61,16 @@ theme_set(theme_cowplot())
 message("Rendering Dashboard")
 
 # reading data
-dat_seg <- read.table(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob="*uber*seg.txt"),sep="\t",header=T) %>% janitor::clean_names()
+dat_bin <- read.table(list.files(path = paste0(here(),"/",params$outdir), pattern="*\\.bin.txt",recursive = T,full.names=T),,sep="\t",header=T) %>% janitor::clean_names()
+message(dim(dat_bin))
+dat_seg <- read.table(list.files(path = paste0(here(),"/",params$outdir), pattern="*\\.seg.txt",recursive = T,full.names=T),sep="\t",header=T) %>% janitor::clean_names()
 dat_seg_cp <- dat_seg %>% dplyr::select(-chrom, -chrompos, -abspos)
+message(dim(dat_seg))
 
-dat_bin <- read.table(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob="*uber*bin.txt"),sep="\t",header=T) %>% janitor::clean_names()
-dat_stats <- read.table(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob="*stat*metrics.txt"),sep="\t",header=T) %>%
+dat_stats <- read.table(list.files(path = paste0(here(),"/",params$outdir), pattern="*stat\\_metrics.txt",recursive = T,full.names=T),sep="\t",header=T) %>%
   janitor::clean_names() %>%
   mutate(duplicates = dups_removed/total_reads)
-
+message(dim(dat_stats))
 
 # correcting names
 dat_stats$sample_name <- make_clean_names(dat_stats$sample_name)
@@ -84,10 +86,10 @@ dat_stats_rm <- raw_dat_stats %>%
 dat_stats_metrics <- dat_stats %>% dplyr::select(-sample_name) %>%summarise_all(median)
 # reading ratio
 
-dat_rat <- read.table(fs::dir_ls(path = paste0(here(),"/",params$outdir), recurse = T, glob= "*uber*ratio.txt"),sep="\t",header=T) %>%janitor::clean_names()
+dat_rat <- read.table(list.files(path = paste0(here(),"/",params$outdir), pattern="*\\.ratio.txt",recursive = T,full.names=T),sep="\t",header=T) %>%janitor::clean_names()
 #dat_rat_cp <- dat_rat %>% dplyr::select(-chrom, -chrompos, -abspos)
 
-dim(dat_rat)
+message(dim(dat_rat))
 # dat_seg setup
 dat_seg_s <- dat_seg %>%dplyr::select(-chrom, -chrompos, -abspos)
 
@@ -144,6 +146,15 @@ Summary
 Column {data-width=200}
 -----------------------------------------------------------------------
 
+### Sample ID
+
+```{r}
+ params$id %>%
+  valueBox(icon = "circle",
+           color = "#000000")
+```
+
+
 ### Cells Sequenced {.colored}
 
 ```{r}
@@ -175,7 +186,15 @@ dat_seg %>%
            color = "#008000")
 ```
 
-### Total Reads (Median) {.colored}
+### Total Reads (All PF Reads) {.colored} 
+
+```{r tot_reads_val_box_all}
+sum(dat_stats$total_reads) %>% 
+valueBox(icon = "percentage")
+```
+
+
+### Total Reads Per Cell (Median) {.colored}
 
 ```{r tot_reads_val_box}
 dat_stats_metrics$total_reads %>% 
@@ -201,7 +220,27 @@ dat_stats_metrics$median_bin_count %>%
 ```{r calculating_pcr_duplicates}
 dups <- round(dat_stats_metrics$duplicates*100,2)
 valueBox(paste0(dups,"%"))
+
 ```
+
+
+### Median Ploidy (scquantum) 
+```{r infering_ploidies}
+
+all.values <- apply(dat_bin[,-(1:3)], 2, ploidy.inference, chrom=dat_bin$chrom)
+df<-data.frame(sample_name=names(all.values),
+           ploidy=sapply(all.values, function(x) x$ploidy),
+           peak.height=sapply(all.values, function(x) x$peak_height)) %>%
+            dplyr::mutate(Cell = paste(sample_name,
+                              ": ",
+                             ploidy,
+                              sep = ""))
+df$ploidy[is.na(df$ploidy)]<-0
+ploidy_median <- median(df$ploidy)
+round(ploidy_median,2) %>% valueBox(icon = "percentage")
+
+```
+
 
 ### Clusters
 ```{r n_clusters}
@@ -244,21 +283,38 @@ chr_bar <- HeatmapAnnotation(chr_text = anno_text(v,
                              col = list(chr = c("1" = "grey88", "2" = "black"))
 )
 
-heat_row_col <- rowAnnotation(df =
-  data.frame(clusters = sort(cl$cluster)),
-             col = list(clusters = row_col))
+Sample_well=rep("PeakA",nrow(dat_seg_order))
+Sample_well[grep(rownames(dat_seg_order),pattern = "Ctrl",ignore.case = T)]="Ctrl"
+Sample_well[grep(rownames(dat_seg_order),pattern = "_D_",ignore.case = T)]="PeakD"
+
+Cells=rep("ctrl",nrow(dat_seg_order))
+Cells[grep(rownames(dat_seg_order),pattern = "_BL_",ignore.case = T)]="PR421_BL"
+Cells[grep(rownames(dat_seg_order),pattern = "_RP_",ignore.case = T)]="PR421_RP"
+#Cells[grep(rownames(dat_seg_order),pattern = "SC89_NKI_9P",ignore.case = T)]="NKI9P_PM2179"
+#Cells[grep(rownames(dat_seg_order),pattern = "post",ignore.case = T)]="KI01_post"
+col<-c("blue","orange","grey")
+names(col)<-c("PR421_BL","PR421_RP","ctrl")
+pcol<-c("yellow","green","red")
+names(pcol)<-c("Ctrl","PeakD","PeakA")
+heat_row_col <- rowAnnotation(
+	     Cells = Cells,
+             Sample_well=Sample_well,
+	     col = list(Cells = col,Sample_well=pcol))
+#	     col = list(Cells = col))
 
 ht <- Heatmap(as.matrix(log2(dat_seg_order+1e-3)),
               cluster_columns = FALSE,
-              cluster_rows = FALSE,
+              cluster_rows = TRUE,
               show_row_names = FALSE,
               show_column_names = FALSE,
               use_raster = TRUE,
+	      left_annotation = heat_row_col,
               top_annotation = chr_bar,
-	            col = circlize::colorRamp2(breaks = c(-2,0,2),c("dodgerblue3", "white", "firebrick3")),
-              heatmap_legend_param = list(title = "Log2 (Ratio)"))
+	            col = circlize::colorRamp2(breaks = c(-2,0.1,2),c("dodgerblue3", "white", "firebrick3")),
+              heatmap_legend_param = list(title = "Log2 (Ratio)", title_gp = gpar(fontsize = 15, fontface = "bold"),labels_gp = gpar(fontsize = 12)))
 
-draw(heat_row_col + ht)
+
+draw(ht,heatmap_legend_side = "right")
 ```
 
 Column 
@@ -276,7 +332,7 @@ p_umap <- umap_df %>%
                  color = as.factor(cluster),
                  label = Cell),
              show.legend = FALSE) +
-  scale_color_manual(values = row_col) +
+  #scale_color_manual(values = row_col) +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.line = element_blank(),
@@ -289,29 +345,8 @@ ggplotly(p_umap, tooltip = "Cell")
 
 ### Ploidy Inference. Hover mouse for more info. {data-height=500}
 
-```{r infering_ploidies}
-#dat_ploidy <- Reduce(rbind, 
- #                    parallel::mcmapply(function(prof, name) c(name, ploidy.and.peakheight(prof)),
- #                                       dat_rat_cp, names(dat_rat_cp),
- #                                       mc.cores= 40, SIMPLIFY=FALSE)) %>% 
- # as_tibble() %>% 
- # readr::type_convert() %>% 
- # dplyr::rename(sample_name = V1) %>% 
- # dplyr::mutate(Cell = paste(sample_name, 
- #                             ": ", 
- #                             ploidy,
-  #                            sep = ""))
+```{r draw_ploidies}
 
-all.values <- apply(dat_bin[,-(1:3)], 2, ploidy.inference, chrom=dat_bin$chrom)
-df<-data.frame(sample_name=names(all.values),
-           ploidy=sapply(all.values, function(x) x$ploidy),
-           peak.height=sapply(all.values, function(x) x$peak_height)) %>%
-            dplyr::mutate(Cell = paste(sample_name,
-                              ": ",
-                             ploidy,
-                              sep = ""))
-df$ploidy[is.na(df$ploidy)]<-0
-ploidy_median <- median(df$ploidy)
 
 
 # obtaining clusters labels to use as colors, matching with cell name and plotting
@@ -322,7 +357,7 @@ dat_ploidy_cl <- dplyr::inner_join(df,umap_cl_result, by = "sample_name")
 p_ploidy <- ggplot(dat_ploidy_cl,aes(x = ploidy, 
                  y = peak.height, label = Cell)) + 
   geom_point(color = as.factor(dat_ploidy_cl$cluster)) +
-  scale_color_manual(values = row_col) + 
+ # scale_color_manual(values = row_col) + 
   scale_x_continuous(breaks = scales::pretty_breaks()) +
   scale_y_continuous(breaks = scales::pretty_breaks()) +
   xlab("Inferred ploidy") +
@@ -605,34 +640,6 @@ knitr::include_graphics(plots[45:46])
 knitr::include_graphics(plots[47:48])
 ```
 
-Phylogenetics
-=======================================================================
-
-Row
------------------------------------------------------------------------
-
-### Neighbor-Joining tree
-
-```{r running_phylogenetics}
-tree <- ape::nj(
-  amap::Dist(dat_seg_order, 
-             method = "manhattan", 
-             nbproc = 40)
-)
-
-# obtaining colors
-list_samples <- split(rownames(dat_seg_order),
-                      sort(cl$cluster))
-tree <- ggtree::groupOTU(tree, list_samples) 
-
-ggtree(ladderize(tree),
-  ladderize = FALSE,
-  size = .1) +
-  geom_tippoint(aes(color = group), size = .7) +
-  scale_colour_manual(values = c("black", row_col)) +
-  theme(legend.position = "right") +
-  labs(color = "Cluster")
-```
 
 About
 =======================================================================

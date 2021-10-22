@@ -46,7 +46,7 @@ my $bin=dirname($0);
 my $support=dirname($bin);
 my $config="$support\/lib\/CNA.config";
 #print "$config\n";
-@files=glob("$fqdir/*_R1*.fastq $fqdir/*_R1*.fastq.gz");
+@files=glob("$fqdir/*_R1_*.fastq.gz $fqdir/*_R1.*gz");
 
 
 my $i=0;
@@ -60,9 +60,8 @@ my $varbin_python=find_path("$config","varbin_python");
 $varbin_python=$bin."/".`basename $varbin_python`;
 chomp $varbin_python;
 my $chrominfo=find_path("$config","chrominfo"); 
+my $sambamba=find_path("$config","sambamba");
 my $sortdir_sub;
-
-my $bins;
 if ($res =~/^200$/){
 	$bins=find_path("$config","bins_200k");
 }elsif($res=~/^100$/){
@@ -91,12 +90,14 @@ chomp $chrominfo;
 foreach $file (@files)
 {
 	my $fname=basename($file);
-#$fname =~ /^(.*?)\_(.*?)\_(.*?)\_(.*?)\_(.*?)\.fastq/;
+	print "$file\n";
 	my $fq1=$file;
 	my $fq2=$file;
-	$fq2=~s/\_R1\_/\_R2\_/;
+	#$fq2=~s/\_R1\_/\_R2\_/;
+	$fq2=~s/\_R1([\_\.])/\_R2$1/;
 	if(-e $fq2){
-	$fname =~ /^(.*?)\_R\d_001/;
+#	$fname =~ /^(.*?)\_R\d[\_\.]001/;
+	$fname =~ /^(.*?)\_R\d[\_\.]/;
 	$pre=$1;  
 	}else{
 	$fname =~ /^(.*?)\.fastq/;
@@ -112,15 +113,16 @@ foreach $file (@files)
 	}
 #from sam to bam
 	$bamName=$bamdir."/".$pre.".bam";
-	$cmd_bam="$samtools view -bS -q 1 $samName > $bamName";
+	$cmd_bam="$samtools view -bS -q 1 $samName -@ 6 > $bamName";
 
 #sort bam
 	$sub_pre=$pre;
+#	$sub_pre=~s/\_S\d+\_L00\d//g; 
 	$sub_pre=~s/\_L00\d//g;
 	$sortdir_sub=$sortdir."/".$sub_pre;
 	`mkdir -p $sortdir_sub`;
 	$sortName=$sortdir_sub."/".$pre.".sorted";
-	$cmd_sort="$samtools sort  $bamName $sortName";
+	$cmd_sort="$samtools sort -@ 6 $bamName $sortName";
 #$sortName2="$sortName.bam";
 	print STDOUT "$cmd_sam\n";
 	system("$cmd_sam");
@@ -157,7 +159,9 @@ elsif($size == 1 )
 #Converts sorted Bam file to a sorted Sam file using Samtools 
 $cmd="$samtools view $sortdir/$sub_pre.sort.bam >$sortdir/$sub_pre.sort.sam";
 system("$cmd");
-#Creates varbins files
+$cmd="$sambamba markdup $sortdir/$sub_pre.sort.bam $sortdir/$sub_pre.sort.markdup.bam -t 6";
+system("$cmd");
+#Creates varbins files 
 $cmd="$varbin_python $sortdir/$sub_pre.sort.sam $vb_dir\/$sub_pre\.vb $stat_dir\/$sub_pre\.stat\.txt $chrominfo $bins";
 print STDOUT "$cmd\n";
 system("$cmd");
