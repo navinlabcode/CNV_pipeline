@@ -32,3 +32,5 @@ step2: run as follows
 	sh run_CNA.sh -f fastq_input -o output
 	or
 	sh run_CNA.sh --fastq fastq_nextseq --output output_nextseq --sample SPA --filter_CellWithEmptyBin 0.05
+	or 
+	sh run_CNA.sh -f fastq_input -o output --miseq
